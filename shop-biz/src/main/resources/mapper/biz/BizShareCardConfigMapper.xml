@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shop.biz.mapper.BizShareCardConfigMapper">
+    
+    <resultMap type="BizShareCardConfig" id="BizShareCardConfigResult">
+        <result property="id"    column="id"    />
+        <result property="tpl"    column="tpl"    />
+        <result property="cardName"    column="card_name"    />
+        <result property="shareSubtitle"    column="share_subtitle"    />
+        <result property="shareTitle"    column="share_title"    />
+        <result property="shareDesc"    column="share_desc"    />
+        <result property="shareImage"    column="share_image"    />
+        <result property="useProductImage"    column="use_product_image"    />
+        <result property="sort"    column="sort"    />
+        <result property="status"    column="status"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="delFlag"    column="del_flag"    />
+    </resultMap>
+
+    <sql id="selectBizShareCardConfigVo">
+        select id, tpl, card_name, share_subtitle, share_title, share_desc, share_image, use_product_image, sort, status, create_by, create_time, update_by, update_time, del_flag from biz_share_card_config
+    </sql>
+
+    <select id="selectBizShareCardConfigList" parameterType="BizShareCardConfig" resultMap="BizShareCardConfigResult">
+        <include refid="selectBizShareCardConfigVo"/>
+        <where>
+            del_flag = '0'
+            <if test="tpl != null  and tpl != ''"> and tpl = #{tpl}</if>
+            <if test="cardName != null  and cardName != ''"> and card_name like concat('%', #{cardName}, '%')</if>
+            <if test="shareSubtitle != null  and shareSubtitle != ''"> and share_subtitle = #{shareSubtitle}</if>
+            <if test="shareTitle != null  and shareTitle != ''"> and share_title = #{shareTitle}</if>
+            <if test="shareDesc != null  and shareDesc != ''"> and share_desc = #{shareDesc}</if>
+            <if test="shareImage != null  and shareImage != ''"> and share_image = #{shareImage}</if>
+            <if test="useProductImage != null  and useProductImage != ''"> and use_product_image = #{useProductImage}</if>
+            <if test="sort != null "> and sort = #{sort}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+        order by sort desc
+    </select>
+    
+    <select id="selectBizShareCardConfigById" parameterType="String" resultMap="BizShareCardConfigResult">
+        <include refid="selectBizShareCardConfigVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertBizShareCardConfig" parameterType="BizShareCardConfig" useGeneratedKeys="true" keyProperty="id">
+        insert into biz_share_card_config
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="tpl != null">tpl,</if>
+            <if test="cardName != null">card_name,</if>
+            <if test="shareSubtitle != null">share_subtitle,</if>
+            <if test="shareTitle != null">share_title,</if>
+            <if test="shareDesc != null">share_desc,</if>
+            <if test="shareImage != null">share_image,</if>
+            <if test="useProductImage != null">use_product_image,</if>
+            <if test="sort != null">sort,</if>
+            <if test="status != null">status,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="delFlag != null">del_flag,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="tpl != null">#{tpl},</if>
+            <if test="cardName != null">#{cardName},</if>
+            <if test="shareSubtitle != null">#{shareSubtitle},</if>
+            <if test="shareTitle != null">#{shareTitle},</if>
+            <if test="shareDesc != null">#{shareDesc},</if>
+            <if test="shareImage != null">#{shareImage},</if>
+            <if test="useProductImage != null">#{useProductImage},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+         </trim>
+    </insert>
+
+    <update id="updateBizShareCardConfig" parameterType="BizShareCardConfig">
+        update biz_share_card_config
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="tpl != null">tpl = #{tpl},</if>
+            <if test="cardName != null">card_name = #{cardName},</if>
+            <if test="shareSubtitle != null">share_subtitle = #{shareSubtitle},</if>
+            <if test="shareTitle != null">share_title = #{shareTitle},</if>
+            <if test="shareDesc != null">share_desc = #{shareDesc},</if>
+            <if test="shareImage != null">share_image = #{shareImage},</if>
+            <if test="useProductImage != null">use_product_image = #{useProductImage},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteBizShareCardConfigById" parameterType="String">
+        update biz_share_card_config set del_flag = '1' where id = #{id}
+    </delete>
+
+    <delete id="deleteBizShareCardConfigByIds" parameterType="String">
+        update biz_share_card_config set del_flag = '1' where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
