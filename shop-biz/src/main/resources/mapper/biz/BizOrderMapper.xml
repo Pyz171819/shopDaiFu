@@ -88,4 +88,19 @@
         where out_trade_no = #{outTradeNo}
     </select>
 
+    <select id="queryByStatus" resultMap="BizOrderResultMap">
+         select *
+         from biz_orders
+         <where>
+                del_flag = '0'
+         <if test="orderCreateUserId != null ">
+             and order_create_user_id = #{orderCreateUserId}
+         </if>
+         <if test="status != null  and status != '' ">
+             and status = #{status}
+         </if>
+         </where>
+         order by create_time desc
+    </select>
+
 </mapper>

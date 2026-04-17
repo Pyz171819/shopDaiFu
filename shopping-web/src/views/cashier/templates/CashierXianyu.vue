@@ -162,6 +162,7 @@ export default {
   mounted() {
     this.calculateRemainingTime()
     this.startTimer()
+    this.initWechatShare()
   },
   beforeDestroy() {
     this.stopTimer()
@@ -203,6 +204,42 @@ export default {
         return image
       }
       return `/api${image}`
+    },
+    async initWechatShare() {
+      const { isWechat } = await import('@/utils/device')
+      if (!isWechat()) return
+
+      try {
+        const { getJsapiSignature } = await import('@/api/wechat')
+        const { initWechatConfig, setShareToFriend } = await import('@/utils/wechat')
+
+        const url = window.location.href.split('#')[0]
+        const res = await getJsapiSignature(url)
+        if (res.code !== 200 || !res.data) return
+
+        await initWechatConfig(res.data)
+
+        const shareData = {
+          title: this.order.orderName || '代付订单',
+          desc: `我在京东上挑好了商品，是时候该你仗义疏财啦，快帮我付个款吧~金额：¥${this.order.money}`,
+          link: window.location.href,
+          imgUrl: this.getShareImage()
+        }
+
+        await setShareToFriend(shareData)
+      } catch (error) {
+        console.error('初始化微信分享失败:', error)
+      }
+    },
+    getShareImage() {
+      if (this.orderItems.length > 0 && this.orderItems[0].image) {
+        const image = this.orderItems[0].image
+        if (!image.startsWith('http')) {
+          return window.location.origin + this.getImageUrl(image)
+        }
+        return image
+      }
+      return window.location.origin + '/logo.png'
     },
     async handlePay() {
       try {

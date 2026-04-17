@@ -10,6 +10,8 @@
     "axios": "^1.15.0",
     "core-js": "^3.38.1",
     "element-ui": "^2.15.14",
+    "html2canvas": "^1.4.1",
+    "qrcodejs2": "0.0.2",
     "vue": "^2.7.16",
     "vue-router": "^3.6.5"
   },

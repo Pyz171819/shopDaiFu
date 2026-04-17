@@ -90,27 +90,42 @@
           </button>
         </div>
 
-        <article v-for="order in filteredOrders" :key="order.id" class="order-card">
+        <div v-if="ordersLoading" class="empty-block compact">
+          <div class="empty-icon"></div>
+          <h3>加载中...</h3>
+          <p>正在获取订单列表</p>
+        </div>
+
+        <div v-else-if="filteredOrders.length === 0" class="empty-block compact">
+          <div class="empty-icon"></div>
+          <h3>暂无订单</h3>
+          <p>{{ activeStatus === 'all' ? '还没有任何订单记录' : '该状态下暂无订单' }}</p>
+        </div>
+
+        <article v-else v-for="order in filteredOrders" :key="order.id" class="order-card">
           <div class="order-top">
             <div>
               <span class="order-caption">下单时间</span>
               <strong class="order-time">{{ order.time }}</strong>
             </div>
             <div class="order-state">
-              <span :class="['state-text', order.status]">{{ statusTextMap[order.status] }}</span>
+              <span :class="['state-text', getStatusClass(order.status)]">{{ statusTextMap[order.status] }}</span>
               <button class="trash-btn" type="button" aria-label="删除订单">删除</button>
             </div>
           </div>
 
           <div class="order-body">
-            <div class="order-cover" :style="{ background: order.cover }">{{ order.short }}</div>
+            <div v-if="order.hasImage" class="order-cover-img">
+              <img :src="order.cover" :alt="order.name">
+            </div>
+            <div v-else class="order-cover" :style="{ background: order.cover }">{{ order.short }}</div>
             <div class="order-info">
               <h3>{{ order.name }}</h3>
               <p>{{ order.desc }}</p>
               <strong>￥{{ formatPrice(order.amount) }}</strong>
             </div>
             <button
-              v-if="order.status === 'pending'"
+              v-if="order.status == 0"
               class="pay-btn"
               type="button"
               @click="payOrder(order)"
@@ -325,6 +340,7 @@ import ImageUpload from "@/components/ImageUpload.vue";
 import { getUserSimpleInfo } from "../../api/auth";
 import { listCategory } from "../../api/home";
 import { createProduct, getMyProducts } from "../../api/products";
+import { getMyOrders } from "../../api/order";
 import { updateUser } from "../../api/user";
 import { clearAuth, setPaymentSummary } from "../../utils/app-state";
 
@@ -360,6 +376,8 @@ export default {
 
       categories: [],
       myProducts: [],
+      orders: [],
+      ordersLoading: false,
 
       actionTabs: ["我的订单", "商品管理", "结算记录", "修改资料"],
       statusFilters: [
@@ -368,55 +386,33 @@ export default {
         { label: "待支付", value: "pending" }
       ],
       statusTextMap: {
-        paid: "已支付",
-        pending: "待支付"
-      },
-
-      orders: [
-        {
-          id: "order-1",
-          time: "2026-04-09 22:13",
-          name: "焦糖厚乳拿铁",
-          desc: "大杯 / 少冰 / 加奶盖",
-          amount: 60,
-          short: "咖",
-          status: "pending",
-          cover: "linear-gradient(135deg, #ffbe7a, #f37d32)"
-        },
-        {
-          id: "order-2",
-          time: "2026-04-09 22:12",
-          name: "抹茶燕麦拿铁",
-          desc: "中杯 / 标准糖 / 热饮",
-          amount: 42,
-          short: "茶",
-          status: "pending",
-          cover: "linear-gradient(135deg, #8fd3a8, #4aa36f)"
-        },
-        {
-          id: "order-3",
-          time: "2026-04-09 22:10",
-          name: "生椰美式",
-          desc: "大杯 / 无糖 / 加浓缩",
-          amount: 36,
-          short: "椰",
-          status: "paid",
-          cover: "linear-gradient(135deg, #93c5fd, #3b82f6)"
-        }
-      ]
+        0: "待支付",
+        1: "已支付",
+        2: "已取消",
+        3: "已退款"
+      }
     };
   },
   computed: {
+    // 不再需要前端筛选，直接显示从后端获取的订单
     filteredOrders() {
-      if (this.activeStatus === "all") {
-        return this.orders;
+      return this.orders;
+    }
+  },
+  watch: {
+    // 监听筛选状态变化，重新查询订单
+    activeStatus(newVal) {
+      this.fetchMyOrders('noInit');
+    },
+    // 监听标签切换，点击"商品管理"时查询商品
+    activeActionTab(newVal) {
+      if (newVal === '商品管理') {
+        this.fetchMyProducts();
       }
-      return this.orders.filter(order => order.status === this.activeStatus);
     }
   },
   created() {
     this.fetchUserProfile();
-    this.fetchMyProducts();
   },
   methods: {
     showMessage(type, message) {
@@ -430,13 +426,14 @@ export default {
     async fetchUserProfile() {
       try {
         const res = await getUserSimpleInfo();
-        const profile = res.user || res.data || res;
+        const profile = res.user;
 
         if (!profile || !(profile.userId || profile.id)) {
           throw new Error("获取用户信息失败");
         }
 
         const nickname = profile.nickName || profile.nickname || "";
+        const userId = profile.userId ;
         const userName = profile.userName || profile.username || "";
         const avatar = profile.avatar || "";
 
@@ -456,6 +453,7 @@ export default {
 
         this.profileForm.nickname = nickname;
         this.profileForm.avatar = avatar;
+        this.fetchMyOrders(userId);
 
         this.avatarVersion = Date.now();
       } catch (error) {
@@ -490,6 +488,91 @@ export default {
       } finally {
         this.productsLoading = false;
       }
+    },
+
+    async fetchMyOrders(userId) {
+
+      this.ordersLoading = true;
+      try {
+        // 根据当前筛选状态传参
+        let status = null;
+        let orderCreateUserId = null;
+        if (this.activeStatus === 'pending') {
+          status = 0; // 待支付
+        } else if (this.activeStatus === 'paid') {
+          status = 1; // 已支付
+        }
+        // activeStatus === 'all' 时，status 为 null，查询全部
+        
+        // 获取当前用户ID
+        if(userId === 'noInit'){
+          orderCreateUserId = this.userProfile.userId || this.userProfile.id; 
+        }else{
+          orderCreateUserId = userId
+        }
+      
+
+        const res = await getMyOrders(status, orderCreateUserId);
+        this.orders = (res.rows || res.data || []).map(item => this.normalizeOrder(item));
+      } catch (error) {
+        this.orders = [];
+        this.showMessage("error", error.message || "获取订单列表失败");
+      } finally {
+        this.ordersLoading = false;
+      }
+    },
+
+    normalizeOrder(item) {
+      // 解析商品列表
+      let items = [];
+      try {
+        items = typeof item.items === 'string' ? JSON.parse(item.items) : (item.items || []);
+      } catch (e) {
+        items = [];
+      }
+
+      // 获取第一个商品信息
+      const firstItem = items[0] || {};
+      const name = item.orderName || firstItem.name || '订单';
+      const short = name.substring(0, 1);
+      
+      // 获取商品图片
+      let image = '';
+      if (firstItem.image) {
+        image = this.getProductImageUrl(firstItem.image);
+      }
+
+      return {
+        id: item.id,
+        outTradeNo: item.outTradeNo,
+        time: item.createTime || item.create_time || '',
+        name: name,
+        desc: items.length > 1 ? `共${items.length}件商品` : (firstItem.shopName || ''),
+        amount: Number(item.money || 0),
+        short: short,
+        status: Number(item.status), // 确保是数字类型
+        cover: image || this.getOrderCover(short),
+        items: items,
+        hasImage: !!image
+      };
+    },
+
+    getOrderCover(short) {
+      const colors = [
+        'linear-gradient(135deg, #ffbe7a, #f37d32)',
+        'linear-gradient(135deg, #8fd3a8, #4aa36f)',
+        'linear-gradient(135deg, #93c5fd, #3b82f6)',
+        'linear-gradient(135deg, #fca5a5, #ef4444)',
+        'linear-gradient(135deg, #c4b5fd, #8b5cf6)'
+      ];
+      const index = short.charCodeAt(0) % colors.length;
+      return colors[index];
+    },
+
+    getStatusClass(status) {
+      if (status === 0) return 'pending';
+      if (status === 1) return 'paid';
+      return 'other';
     },
 
     normalizeProduct(item) {
@@ -613,19 +696,11 @@ export default {
     },
 
     payOrder(order) {
-      setPaymentSummary({
-        amount: order.amount,
-        count: 1,
-        items: [
-          {
-            id: order.id,
-            name: order.name,
-            price: order.amount,
-            quantity: 1
-          }
-        ]
+      // 跳转到收银台页面
+      this.$router.push({
+        name: 'cashier',
+        query: { outTradeNo: order.outTradeNo }
       });
-      this.$router.push({ name: "payment" });
     },
 
     async saveProfileInfo() {
@@ -1126,6 +1201,23 @@ export default {
   color: #fff;
   font-size: 28px;
   font-weight: 800;
+  flex-shrink: 0;
+}
+
+.order-cover-img {
+  width: 78px;
+  height: 78px;
+  border-radius: 22px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f5f7fa;
+}
+
+.order-cover-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .order-info {

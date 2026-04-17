@@ -135,17 +135,18 @@ export default {
     getTemplateImage(image) {
       if (!image) return ''
 
+      // 如果已经是完整的 URL，直接返回
       if (/^https?:\/\//i.test(image)) {
         return image
       }
 
-      const baseUrl = 'http://localhost:8989'
-
+      // 使用 /api 前缀，让 vue.config.js 的代理处理
+      // 这样在开发环境和生产环境都能正常工作
       if (image.startsWith('/')) {
-        return `${baseUrl}${image}`
+        return `/api${image}`
       }
 
-      return `${baseUrl}/${image}`
+      return `/api/${image}`
     },
 
     handleUseTpl(option) {

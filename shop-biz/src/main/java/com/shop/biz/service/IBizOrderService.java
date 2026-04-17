@@ -6,6 +6,8 @@ import com.shop.biz.domain.pay.BizOrderPayReq;
 import com.shop.biz.domain.pay.BizOrderPayResp;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.List;
+
 public interface IBizOrderService {
 
     /**
@@ -24,4 +26,6 @@ public interface IBizOrderService {
     BizOrder getOrderByOutTradeNo(String outTradeNo);
 
     BizOrderPayResp pay(BizOrderPayReq req, HttpServletRequest request);
+
+    List<BizOrder> queryByStatus(BizOrder  order);
 }

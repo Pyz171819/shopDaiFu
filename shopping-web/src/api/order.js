@@ -28,3 +28,21 @@ export function payOrder(data) {
     data
   });
 }
+
+// 获取我的订单列表
+export function getMyOrders(status, orderCreateUserId) {
+  const params = {};
+  // status: null/undefined-全部, 0-待支付, 1-已支付
+  if (status !== null && status !== undefined) {
+    params.status = status;
+  }
+  // 订单创建人ID
+  if (orderCreateUserId) {
+    params.orderCreateUserId = orderCreateUserId;
+  }
+  return request({
+    url: "/biz/order/queryByStatus",
+    method: "get",
+    params
+  });
+}

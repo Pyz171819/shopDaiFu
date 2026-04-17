@@ -10,6 +10,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/biz/order")
 public class BizOrderController {
@@ -35,6 +37,15 @@ public class BizOrderController {
     @GetMapping("/info/{id}")
     public AjaxResult info(@PathVariable("id") Long id) {
         return AjaxResult.success(bizOrderService.getOrderById(id));
+    }
+
+
+    //根据支付状态查询订单信息
+    @GetMapping("/queryByStatus")
+    public AjaxResult queryByStatus(BizOrder  order) {
+        List<BizOrder> list = bizOrderService.queryByStatus(order);
+        System.out.println("list=" + list);
+        return AjaxResult.success(list);
     }
 
     /**

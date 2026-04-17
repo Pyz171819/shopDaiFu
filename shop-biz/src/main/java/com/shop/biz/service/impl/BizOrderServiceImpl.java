@@ -214,6 +214,11 @@ public class BizOrderServiceImpl implements IBizOrderService {
         }
     }
 
+    @Override
+    public List<BizOrder> queryByStatus(BizOrder  order) {
+         return bizOrderMapper.queryByStatus(order);
+    }
+
     private String getClientIp(HttpServletRequest request) {
         if (request == null) {
             return "127.0.0.1";

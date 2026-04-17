@@ -63,7 +63,13 @@
 
         <!-- 分享按钮 - 仅未支付且未过期时显示 -->
         <div v-if="!isExpired" style="margin-top: 25px; padding-top: 15px; border-top: 1px dashed #eee;">
-          <button class="btn-main btn-poster" @click="handleGeneratePoster">生成海报分享</button>
+          <button 
+            class="btn-main btn-poster" 
+            @click="handleGeneratePoster"
+            :disabled="isGeneratingPoster"
+          >
+            {{ isGeneratingPoster ? '原图生成中...' : '生成海报分享' }}
+          </button>
           <button class="btn-main btn-card-share" @click="handleCardShare">微信卡片分享</button>
         </div>
       </div>
@@ -115,10 +121,25 @@
         </div>
       </div>
     </div>
+
+    <!-- 海报弹窗 -->
+    <div v-if="showPosterModal" class="poster-modal" @click="closePosterModal">
+      <div class="poster-modal-close">×</div>
+      <img v-if="posterImageUrl" :src="posterImageUrl" class="poster-image" alt="海报">
+      <div class="poster-tip">长按图片保存，分享到朋友圈</div>
+    </div>
+
+    <!-- 隐藏的海报画布 -->
+    <div ref="posterCanvas" class="poster-canvas">
+      <div ref="posterQrContainer" class="poster-qr"></div>
+    </div>
   </div>
 </template>
 
 <script>
+import html2canvas from 'html2canvas'
+import QRCode from 'qrcodejs2'
+
 export default {
   name: 'CashierDefault',
   props: {
@@ -130,7 +151,10 @@ export default {
   data() {
     return {
       remainingSeconds: 0,
-      timer: null
+      timer: null,
+      showPosterModal: false,
+      posterImageUrl: '',
+      isGeneratingPoster: false
     }
   },
   computed: {
@@ -189,6 +213,7 @@ export default {
   mounted() {
     this.calculateRemainingTime()
     this.startTimer()
+    this.initWechatShare()
   },
   beforeDestroy() {
     this.stopTimer()
@@ -259,10 +284,130 @@ export default {
         this.$message.error(error.message || '支付请求失败')
       }
     },
-    handleGeneratePoster() {
-      this.$message.info('生成海报功能开发中...')
+    async handleGeneratePoster() {
+      if (this.isGeneratingPoster) return
+      
+      try {
+        this.isGeneratingPoster = true
+        
+        // 等待一下让按钮文字更新
+        await this.$nextTick()
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+        // 获取海报容器
+        const posterCanvas = this.$refs.posterCanvas
+        if (!posterCanvas) {
+          throw new Error('海报容器未找到')
+        }
+
+        // 设置背景图
+        posterCanvas.style.backgroundImage = 'url(/mthbs.png)'
+
+        // 生成二维码
+        const qrContainer = this.$refs.posterQrContainer
+        if (!qrContainer) {
+          throw new Error('二维码容器未找到')
+        }
+        
+        qrContainer.innerHTML = '' // 清空之前的二维码
+        
+        const shareUrl = window.location.href
+        const qrSize = Math.floor(750 * 0.25) // 二维码大小为画布宽度的25%
+        
+        new QRCode(qrContainer, {
+          text: shareUrl,
+          width: qrSize,
+          height: qrSize,
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H
+        })
+
+        // 等待二维码生成
+        await new Promise(resolve => setTimeout(resolve, 800))
+
+        // 生成海报图片
+        const canvas = await html2canvas(posterCanvas, {
+          useCORS: true,
+          scale: 1,
+          allowTaint: false,
+          backgroundColor: null
+        })
+
+        // 显示海报
+        this.posterImageUrl = canvas.toDataURL('image/png', 1.0)
+        this.showPosterModal = true
+        
+      } catch (error) {
+        console.error('生成海报失败:', error)
+        this.$message.error('生成海报失败，请稍后重试')
+      } finally {
+        this.isGeneratingPoster = false
+      }
+    },
+    closePosterModal() {
+      this.showPosterModal = false
+      this.posterImageUrl = ''
+    },
+    async initWechatShare() {
+      // 只在微信环境中初始化分享
+      const { isWechat } = await import('@/utils/device')
+      if (!isWechat()) {
+        return
+      }
+
+      try {
+        const { getJsapiSignature } = await import('@/api/wechat')
+        const { initWechatConfig, setShareToFriend } = await import('@/utils/wechat')
+
+        // 获取当前页面 URL（去掉 # 后面的部分）
+        const url = window.location.href.split('#')[0]
+
+        // 获取微信签名配置
+        const res = await getJsapiSignature(url)
+        if (res.code !== 200 || !res.data) {
+          console.error('获取微信签名失败:', res.msg)
+          return
+        }
+
+        // 初始化微信 JS-SDK
+        await initWechatConfig(res.data)
+
+        // 设置分享内容
+        const shareData = {
+          title: this.order.orderName || '代付订单',
+          desc: `我在使用代付功能，帮我付个款吧~金额：¥${this.order.money}`,
+          link: window.location.href,
+          imgUrl: this.getShareImage()
+        }
+
+        await setShareToFriend(shareData)
+        console.log('微信分享配置成功')
+      } catch (error) {
+        console.error('初始化微信分享失败:', error)
+      }
+    },
+    getShareImage() {
+      // 优先使用第一个商品的图片
+      if (this.orderItems.length > 0 && this.orderItems[0].image) {
+        const image = this.orderItems[0].image
+        // 如果是相对路径，转换为完整 URL
+        if (!image.startsWith('http')) {
+          return window.location.origin + this.getImageUrl(image)
+        }
+        return image
+      }
+      // 默认图片
+      return window.location.origin + '/logo.png'
     },
     handleCardShare() {
+      // 检查是否在微信环境
+      const { isWechat } = require('@/utils/device')
+      
+      if (!isWechat()) {
+        this.$message.warning('请在微信中打开此页面进行分享')
+        return
+      }
+      
       this.$message.info('请点击右上角【...】选择【发送给朋友】')
     }
   }
@@ -383,6 +528,13 @@ export default {
   cursor: not-allowed !important;
 }
 
+.btn-poster:disabled {
+  background: #fff !important;
+  color: #F5A623 !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+}
+
 .btn-poster { 
   background: #fff; 
   border: 1px solid #FDD934; 
@@ -470,5 +622,65 @@ export default {
   display: -webkit-box; 
   -webkit-line-clamp: 2; 
   -webkit-box-orient: vertical; 
+}
+
+.poster-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.poster-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: #fff;
+  font-size: 35px;
+  cursor: pointer;
+  z-index: 10000;
+}
+
+.poster-image {
+  width: 85%;
+  max-width: 320px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.poster-tip {
+  color: #fff;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.poster-canvas {
+  position: absolute;
+  top: 0;
+  left: -9999px;
+  width: 750px;
+  height: 1334px;
+  background-color: #fff;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  overflow: hidden;
+}
+
+.poster-qr {
+  position: absolute;
+  bottom: 5%;
+  right: 8%;
+  z-index: 99;
+  border: 4px solid #fff;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 </style>
