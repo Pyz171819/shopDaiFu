@@ -64,19 +64,18 @@ public class WechatPayGatewayImpl implements WechatPayGateway {
     @Override
     public Map<String, String> jsapiPay(BizOrder order, String openId) {
         BizWxPayV2Config cfg = loadAndValidateConfig();
-
-        String finalOpenId = firstNonBlank(openId, order.getOpenid(), cfg.getMockOpenId());
-        if (isBlank(finalOpenId)) {
+        if (isBlank(openId)) {
             throw new ServiceException("微信内支付缺少 openid");
         }
 
         SortedMap<String, String> params = buildBaseParams(cfg, order);
         params.put("trade_type", TRADE_TYPE_JSAPI);
-        params.put("openid", finalOpenId);
+        params.put("openid", openId);
         params.put("sign_type", SIGN_TYPE);
         params.put("sign", createSign(params, cfg.getKey(), SIGN_TYPE));
 
         Map<String, String> resp = unifiedOrder(params);
+
         String prepayId = resp.get("prepay_id");
         if (isBlank(prepayId)) {
             throw new ServiceException("微信JSAPI下单失败：未返回 prepay_id");
@@ -125,7 +124,8 @@ public class WechatPayGatewayImpl implements WechatPayGateway {
         String requestXml = mapToXml(params);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_XML);
+//        headers.setContentType(MediaType.APPLICATION_XML);
+        headers.setContentType(new MediaType("application", "xml", StandardCharsets.UTF_8));
         HttpEntity<String> entity = new HttpEntity<>(requestXml, headers);
 
         ResponseEntity<String> response;
@@ -162,6 +162,42 @@ public class WechatPayGatewayImpl implements WechatPayGateway {
         return respMap;
     }
 
+    @Override
+    public Map<String, String> parseXmlToMap(String xml) {
+        return xmlToMap(xml);
+    }
+
+    @Override
+    public boolean verifyNotifySign(Map<String, String> data) {
+        BizWxPayV2Config cfg = loadAndValidateConfig();
+        return verifySign(data, cfg.getKey());
+    }
+
+
+    private boolean verifySign(Map<String, String> data, String key) {
+        if (data == null || data.isEmpty() || isBlank(key)) {
+            return false;
+        }
+
+        String sign = data.get("sign");
+        if (isBlank(sign)) {
+            return false;
+        }
+
+        SortedMap<String, String> sortedMap = new TreeMap<>();
+        for (Map.Entry<String, String> entry : data.entrySet()) {
+            String k = entry.getKey();
+            String v = entry.getValue();
+            if (!"sign".equals(k) && !isBlank(v)) {
+                sortedMap.put(k, v);
+            }
+        }
+
+        String signType = data.get("sign_type");
+        String localSign = createSign(sortedMap, key, isBlank(signType) ? SIGN_TYPE : signType);
+        return sign.equalsIgnoreCase(localSign);
+    }
+
     /**
      * 组装统一下单公共参数
      */
@@ -174,6 +210,7 @@ public class WechatPayGatewayImpl implements WechatPayGateway {
         params.put("out_trade_no", order.getOutTradeNo());
         params.put("fee_type", FEE_TYPE);
         params.put("total_fee", String.valueOf(toFen(order.getMoney())));
+        //todo: 获取客户端IP
         params.put("spbill_create_ip", "127.0.0.1");
         params.put("notify_url", buildNotifyUrl(cfg));
 
@@ -265,32 +302,57 @@ public class WechatPayGatewayImpl implements WechatPayGateway {
     private String mapToXml(Map<String, String> map) {
         StringBuilder sb = new StringBuilder();
         sb.append("<xml>");
+
         for (Map.Entry<String, String> entry : map.entrySet()) {
-            sb.append("<").append(entry.getKey()).append("><![CDATA[")
-                    .append(entry.getValue() == null ? "" : entry.getValue())
-                    .append("]]></").append(entry.getKey()).append(">");
+            String key = entry.getKey();
+            String value = entry.getValue();
+
+            if (value == null) {
+                value = "";
+            }
+
+            // 防止 CDATA 被意外截断
+            value = value.replace("]]>", "]]]]><![CDATA[>");
+
+            sb.append("<").append(key).append("><![CDATA[")
+                    .append(value)
+                    .append("]]></").append(key).append(">");
         }
+
         sb.append("</xml>");
         return sb.toString();
     }
 
     private Map<String, String> xmlToMap(String xml) {
+        if (isBlank(xml)) {
+            throw new ServiceException("解析微信返回XML失败：XML内容为空");
+        }
+
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
             factory.setExpandEntityReferences(false);
+            factory.setXIncludeAware(false);
+            factory.setNamespaceAware(false);
 
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document document = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
             Map<String, String> map = new LinkedHashMap<>();
             NodeList childNodes = document.getDocumentElement().getChildNodes();
+
             for (int i = 0; i < childNodes.getLength(); i++) {
-                if (childNodes.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-                    map.put(childNodes.item(i).getNodeName(), childNodes.item(i).getTextContent());
+                org.w3c.dom.Node node = childNodes.item(i);
+                if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+                    String key = node.getNodeName();
+                    String value = node.getTextContent();
+                    map.put(key, value == null ? "" : value.trim());
                 }
             }
+
             return map;
         } catch (Exception e) {
             throw new ServiceException("解析微信返回XML失败：" + e.getMessage());
@@ -319,7 +381,7 @@ public class WechatPayGatewayImpl implements WechatPayGateway {
 
     private String buildNotifyUrl(BizWxPayV2Config cfg) {
         // 按你的实际网关前缀调整
-        return cfg.getH5BaseUrl() + "/prod-api/biz/order/notify/wxpay";
+        return cfg.getH5BaseUrl() + "/api/biz/order/pay/notify";
     }
 
     private String buildBody(BizOrder order) {

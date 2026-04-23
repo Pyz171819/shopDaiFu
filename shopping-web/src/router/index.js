@@ -5,12 +5,14 @@ import HomePage from "../views/home/index.vue";
 import PaymentPage from "../views/payment/index.vue";
 import ProfilePage from "../views/profile/index.vue";
 import CashierPage from "../views/cashier/index.vue";
-import { isLoggedIn } from "../utils/app-state";
+import { isLoggedIn, clearAuth } from "../utils/app-state";
 
 Vue.use(Router);
 
 const router = new Router({
-  mode: "hash",
+  // mode: "hash",
+  mode: "history",
+  base: "/web",
   routes: [
     {
       path: "/",
@@ -21,7 +23,8 @@ const router = new Router({
       name: "login",
       component: LoginPage,
       meta: {
-        guestOnly: true
+        guestOnly: true,
+        title: "登录 - 代付系统"
       }
     },
     {
@@ -29,7 +32,8 @@ const router = new Router({
       name: "home",
       component: HomePage,
       meta: {
-        requiresAuth: true
+        requiresAuth: true,
+        title: "商品列表 - 代付系统"
       }
     },
     {
@@ -37,7 +41,8 @@ const router = new Router({
       name: "payment",
       component: PaymentPage,
       meta: {
-        requiresAuth: true
+        requiresAuth: true,
+        title: "选择模板 - 代付系统"
       }
     },
     {
@@ -45,7 +50,8 @@ const router = new Router({
       name: "cashier",
       component: CashierPage,
       meta: {
-        requiresAuth: true
+        requiresAuth: true,
+        title: "收银台 - 代付系统"
       }
     },
     {
@@ -53,7 +59,8 @@ const router = new Router({
       name: "profile",
       component: ProfilePage,
       meta: {
-        requiresAuth: true
+        requiresAuth: true,
+        title: "个人中心 - 代付系统"
       }
     },
     {
@@ -66,6 +73,11 @@ const router = new Router({
 router.beforeEach((to, from, next) => {
   const loggedIn = isLoggedIn();
 
+  // 如果token无效,清除所有认证信息
+  if (!loggedIn && localStorage.getItem('Admin-Token')) {
+    clearAuth();
+  }
+
   if (to.matched.some(record => record.meta.requiresAuth) && !loggedIn) {
     next({ name: "login" });
     return;
@@ -74,6 +86,13 @@ router.beforeEach((to, from, next) => {
   if (to.matched.some(record => record.meta.guestOnly) && loggedIn) {
     next({ name: "home" });
     return;
+  }
+
+  // 设置页面标题
+  if (to.meta.title) {
+    document.title = to.meta.title;
+  } else {
+    document.title = "代付系统";
   }
 
   next();

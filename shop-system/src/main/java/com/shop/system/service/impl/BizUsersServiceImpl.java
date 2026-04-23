@@ -84,6 +84,14 @@ public class BizUsersServiceImpl implements IBizUsersService
         return bizUsersMapper.updateBizUsersByUserId(bizUsers);
     }
 
+    @Override
+    public int updateBizUsersByUserIdAndNotice(BizUsers bizUsers)
+    {
+        bizUsers.setUpdateBy("支付成功回调更新");
+        bizUsers.setUpdateTime(DateUtils.getNowDate());
+        return bizUsersMapper.updateBizUsersByUserId(bizUsers);
+    }
+
     /**
      * 批量删除前台用户业务扩展
      * 

@@ -34,6 +34,12 @@ public class BizShareCardConfigServiceImpl implements IBizShareCardConfigService
         return bizShareCardConfigMapper.selectBizShareCardConfigById(id);
     }
 
+    @Override
+    public BizShareCardConfig selectBizShareCardConfigBytpl(String id)
+    {
+        return bizShareCardConfigMapper.selectBizShareCardConfigBytpl(id);
+    }
+
     /**
      * 查询分享卡片配置列表
      * 

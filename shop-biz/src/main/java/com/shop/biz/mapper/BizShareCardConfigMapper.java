@@ -19,6 +19,8 @@ public interface BizShareCardConfigMapper
      */
     public BizShareCardConfig selectBizShareCardConfigById(String id);
 
+    public BizShareCardConfig selectBizShareCardConfigBytpl(String id);
+
     /**
      * 查询分享卡片配置列表
      * 

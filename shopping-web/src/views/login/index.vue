@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="login-page">
     <div class="ambient ambient-left"></div>
     <div class="ambient ambient-right"></div>
@@ -10,15 +10,10 @@
         <p class="hero-text">
           面向门店运营、订单处理与数据巡检的统一入口。
         </p>
-        <div class="hero-points">
-          <div class="point-card">
-            <strong>运营工作台</strong>
-            <span>登录后可直接进入首页、支付和个人中心模块</span>
-          </div>
-        </div>
       </section>
 
       <section class="form-panel">
+
         <div class="form-head">
           <div class="form-tag">Merchant Portal</div>
           <h2>欢迎回来</h2>

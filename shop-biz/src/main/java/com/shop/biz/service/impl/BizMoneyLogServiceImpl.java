@@ -2,6 +2,7 @@ package com.shop.biz.service.impl;
 
 import java.util.List;
 import com.shop.common.utils.DateUtils;
+import com.shop.common.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.shop.biz.mapper.BizMoneyLogMapper;
@@ -53,7 +54,18 @@ public class BizMoneyLogServiceImpl implements IBizMoneyLogService
     @Override
     public int insertBizMoneyLog(BizMoneyLog bizMoneyLog)
     {
+        bizMoneyLog.setCreateBy(String.valueOf(SecurityUtils.getUserId()));
         bizMoneyLog.setCreateTime(DateUtils.getNowDate());
+        bizMoneyLog.setDelFlag("0");
+        return bizMoneyLogMapper.insertBizMoneyLog(bizMoneyLog);
+    }
+
+    @Override
+    public int insertBizMoneyLogByNotify(BizMoneyLog bizMoneyLog)
+    {
+        bizMoneyLog.setCreateBy("支付成功回调创建");
+        bizMoneyLog.setCreateTime(DateUtils.getNowDate());
+        bizMoneyLog.setDelFlag("0");
         return bizMoneyLogMapper.insertBizMoneyLog(bizMoneyLog);
     }
 
@@ -66,6 +78,7 @@ public class BizMoneyLogServiceImpl implements IBizMoneyLogService
     @Override
     public int updateBizMoneyLog(BizMoneyLog bizMoneyLog)
     {
+        bizMoneyLog.setUpdateBy(String.valueOf(SecurityUtils.getUserId()));
         bizMoneyLog.setUpdateTime(DateUtils.getNowDate());
         return bizMoneyLogMapper.updateBizMoneyLog(bizMoneyLog);
     }

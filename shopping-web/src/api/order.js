@@ -46,3 +46,25 @@ export function getMyOrders(status, orderCreateUserId) {
     params
   });
 }
+
+// 查询今日流水
+export function getTodayRevenue(createBy) {
+  return request({
+    url: "/biz/order/queryTodayXF",
+    method: "get",
+    params: {
+      createBy
+    }
+  });
+}
+
+// 删除订单
+export function deleteOrder(outTradeNo) {
+  return request({
+    url: "/biz/order/deleteOrder",
+    method: "get",
+    params: {
+      outTradeNo
+    }
+  });
+}

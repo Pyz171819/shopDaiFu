@@ -34,6 +34,7 @@ public interface IBizMoneyLogService
      * @return 结果
      */
     public int insertBizMoneyLog(BizMoneyLog bizMoneyLog);
+    public int insertBizMoneyLogByNotify(BizMoneyLog bizMoneyLog);
 
     /**
      * 修改资金变动日志

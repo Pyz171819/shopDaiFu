@@ -75,6 +75,13 @@ public class BizShareCardConfigController extends BaseController
         return success(bizShareCardConfigService.selectBizShareCardConfigById(id));
     }
 
+    @GetMapping(value = "/getTpl/{tpl}")
+    public AjaxResult selectBizShareCardConfigBytpl(@PathVariable("tpl") String tpl)
+    {
+        System.out.println("tpl"+ tpl);
+        return success(bizShareCardConfigService.selectBizShareCardConfigBytpl(tpl));
+    }
+
     /**
      * 新增分享卡片配置
      */

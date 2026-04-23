@@ -197,12 +197,26 @@ export default {
           throw new Error('订单创建成功，但未返回订单信息')
         }
 
-        // 只保存订单号，不再保存完整订单信息
         const outTradeNo = order.outTradeNo
 
         this.$message.success('订单创建成功')
 
-        // 跳转到支付页面，通过 URL 参数传递订单号
+        // 清除购物车数据
+        localStorage.removeItem('shopping-control-home-cart')
+        localStorage.removeItem('shopping-control-payment-summary')
+
+        // 在微信环境中，配置分享
+        try {
+          const { isWechat } = await import('@/utils/device')
+          if (isWechat()) {
+            await this.configWechatShare(order, current)
+          }
+        } catch (error) {
+          console.error('[Payment] 配置微信分享失败:', error)
+          // 不影响跳转
+        }
+
+        // 跳转到支付页面
         setTimeout(() => {
           this.$router.push({ 
             name: 'cashier',
@@ -214,6 +228,70 @@ export default {
         this.$message.error(error.message || '创建订单失败，请稍后重试')
       } finally {
         this.submitting = false
+      }
+    },
+
+    async configWechatShare(order, templateConfig) {
+      try {
+        console.log('[Payment] 开始配置微信分享')
+        
+        const { getJsapiSignature } = await import('@/api/wechat')
+        const { initWechatConfig, setShareToFriend } = await import('@/utils/wechat')
+
+        const signUrl = window.location.href.split('#')[0]
+        const res = await getJsapiSignature(signUrl)
+
+        if (res.code !== 200 || !res.data) {
+          throw new Error(res.msg || '获取微信签名失败')
+        }
+
+        const wx = await initWechatConfig(res.data)
+
+        console.log('[Payment] wx.ready 触发，开始设置分享')
+
+        // 构建分享链接
+        const shareLink = `${window.location.origin}/share/cashier?outTradeNo=${encodeURIComponent(order.outTradeNo)}&from=share`
+        
+        // 获取分享图片
+        let imgUrl = ''
+        if (String(templateConfig.useProductImage) === '1') {
+          // 使用商品图
+          const items = order.items ? (typeof order.items === 'string' ? JSON.parse(order.items) : order.items) : []
+          if (items.length > 0 && items[0].image) {
+            const image = items[0].image
+            if (image.startsWith('http://') || image.startsWith('https://')) {
+              imgUrl = image
+            } else {
+              imgUrl = window.location.origin + (image.startsWith('/') ? `/api${image}` : `/api/${image}`)
+            }
+          }
+        } else {
+          // 使用固定图
+          if (templateConfig.shareImage) {
+            const shareImage = templateConfig.shareImage
+            if (shareImage.startsWith('http://') || shareImage.startsWith('https://')) {
+              imgUrl = shareImage
+            } else {
+              imgUrl = window.location.origin + '/api' + shareImage
+            }
+          }
+        }
+
+        const shareData = {
+          title: templateConfig.shareTitle || '代付订单',
+          desc: templateConfig.shareDesc || `帮我付款吧，金额：¥${order.money}`,
+          link: shareLink,
+          imgUrl: imgUrl
+        }
+
+        console.log('[Payment] 分享数据:', shareData)
+
+        setShareToFriend(shareData)
+        
+        console.log('[Payment] 微信分享配置完成')
+      } catch (error) {
+        console.error('[Payment] 配置微信分享失败:', error)
+        throw error
       }
     },
 

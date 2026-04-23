@@ -206,4 +206,32 @@ public class BizOrder implements Serializable {
     public void setDelFlag(String delFlag) {
         this.delFlag = delFlag;
     }
+
+    @Override
+    public String toString() {
+        return "BizOrder{" +
+                "id=" + id +
+                ", outTradeNo='" + outTradeNo + '\'' +
+                ", productId=" + productId +
+                ", money=" + money +
+                ", status='" + status + '\'' +
+                ", openid='" + openid + '\'' +
+                ", payType='" + payType + '\'' +
+                ", type='" + type + '\'' +
+                ", orderName='" + orderName + '\'' +
+                ", template='" + template + '\'' +
+                ", tpl='" + tpl + '\'' +
+                ", items='" + items + '\'' +
+                ", payTime=" + payTime +
+                ", expireTime=" + expireTime +
+                ", transactionId='" + transactionId + '\'' +
+                ", notifyTime=" + notifyTime +
+                ", orderCreateUserId=" + orderCreateUserId +
+                ", createBy='" + createBy + '\'' +
+                ", createTime=" + createTime +
+                ", updateBy='" + updateBy + '\'' +
+                ", updateTime=" + updateTime +
+                ", delFlag='" + delFlag + '\'' +
+                '}';
+    }
 }

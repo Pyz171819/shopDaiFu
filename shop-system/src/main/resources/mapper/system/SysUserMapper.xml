@@ -25,6 +25,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"      column="update_by"       />
         <result property="updateTime"    column="update_time"     />
         <result property="remark"        column="remark"          />
+        <result property="todayAmount"        column="today_amount"          />
 		<association property="bizUser"  resultMap="com.shop.system.mapper.BizUsersMapper.BizUsersResult" />
 		<association property="dept"     javaType="SysDept"         resultMap="deptResult" />
 		<collection  property="roles"    javaType="java.util.List"  resultMap="RoleResult" />
@@ -64,6 +65,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     
     <select id="selectUserList" parameterType="SysUser" resultMap="SysUserResult">
 		select u.user_id, u.dept_id, u.nick_name, u.user_name,u.user_type, u.email, u.avatar, u.phonenumber, u.sex, u.status,
+		       (
+		           select ifnull(sum(money), 0) from biz_orders o where o.create_by = u.user_id and o.status = '1' and o.create_time >= curdate() and o.create_time &lt;= date_add(curdate(), interval 1 day)
+			   ) as today_amount,
 		       u.del_flag, u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, d.dept_name, d.leader,
 		bu.avatar as avatar, bu.commission_rate, bu.balance,bu.pay_code, bu.perm_payment, bu.pay_config, bu.pid, bu.agent_rate, bu.perm_add_product
 		from sys_user u
@@ -78,15 +82,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		</if>
 		<if test="status != null and status != ''">
 			AND u.status = #{status}
-		</if>
-		<if test="phonenumber != null and phonenumber != ''">
-			AND u.phonenumber like concat('%', #{phonenumber}, '%')
-		</if>
-		<if test="params.beginTime != null and params.beginTime != ''"><!-- 开始时间检索 -->
-			AND date_format(u.create_time,'%Y%m%d') &gt;= date_format(#{params.beginTime},'%Y%m%d')
-		</if>
-		<if test="params.endTime != null and params.endTime != ''"><!-- 结束时间检索 -->
-			AND date_format(u.create_time,'%Y%m%d') &lt;= date_format(#{params.endTime},'%Y%m%d')
 		</if>
 		<if test="deptId != null and deptId != 0">
 			AND (u.dept_id = #{deptId} OR u.dept_id IN ( SELECT t.dept_id FROM sys_dept t WHERE find_in_set(#{deptId}, ancestors) ))
@@ -137,7 +132,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 	
 	<select id="selectUserById" parameterType="Long" resultMap="SysUserResult">
 		<include refid="selectUserVo"/>
-		where u.user_id = #{userId}
+		where u.user_id = #{userId} and u.del_flag = '0'
 	</select>
 	
 	<select id="checkUserNameUnique" parameterType="String" resultMap="SysUserResult">
@@ -236,4 +231,29 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </foreach> 
  	</delete>
 	
+	<select id="countActiveUsers" resultType="java.lang.Long">
+		select count(1)
+		from sys_user
+		where del_flag = '0'
+	</select>
+
+	<select id="countUsersCreatedBetween" resultType="java.lang.Long">
+		select count(1)
+		from sys_user
+		where del_flag = '0'
+		  and create_time <![CDATA[>=]]> #{startTime}
+		  and create_time <![CDATA[<]]> #{endTime}
+	</select>
+
+	<select id="selectLatestUsers" resultType="com.shop.common.core.domain.entity.SysUser">
+		select user_id as userId,
+		       user_name as userName,
+		       nick_name as nickName,
+		       login_ip as loginIp,
+		       create_time as createTime
+		from sys_user
+		where del_flag = '0'
+		order by create_time desc
+		limit #{limit}
+	</select>
 </mapper> 

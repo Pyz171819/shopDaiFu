@@ -134,3 +134,13 @@ export function deptTreeSelect() {
     method: 'get'
   })
 }
+
+//查询今日收入
+export function getTodayIncome() {
+  return request({
+    url: '/biz/order/queryTodayXF',
+    method: 'get'
+  })
+}
+
+

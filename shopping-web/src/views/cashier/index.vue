@@ -1,7 +1,7 @@
 <template>
   <div class="cashier-page">
-    <component 
-      :is="currentTemplate" 
+    <component
+      :is="currentTemplate"
       v-if="currentTemplate && !loading"
       :order="orderData"
     />
@@ -14,16 +14,16 @@
 
 <script>
 import { getOrderDetail } from '@/api/order'
-import CashierDefault from './templates/CashierDefault.vue'
-import CashierXianyu from './templates/CashierXianyu.vue'
-import CashierDidi from './templates/CashierDidi.vue'
+import CashierMeituan from './templates/CashierMeituan.vue'
+import CashierCtrip from './templates/CashierCtrip.vue'
+import CashierPinduoduo from './templates/CashierPinduoduo.vue'
 
 export default {
   name: 'CashierPage',
   components: {
-    CashierDefault,
-    CashierXianyu,
-    CashierDidi
+    CashierMeituan,
+    CashierCtrip,
+    CashierPinduoduo
   },
   data() {
     return {
@@ -37,9 +37,8 @@ export default {
   },
   methods: {
     async loadOrder() {
-      // 从 URL 参数获取订单号
       const outTradeNo = this.$route.query.outTradeNo
-      
+
       if (!outTradeNo) {
         this.$message.error('订单号不存在')
         this.$router.push({ name: 'home' })
@@ -47,27 +46,24 @@ export default {
       }
 
       this.loading = true
-      
+
       try {
-        // 调用后端接口查询订单详情
         const res = await getOrderDetail(outTradeNo)
-        
+
         if (res.code !== 200 || !res.data) {
           throw new Error(res.msg || '订单查询失败')
         }
 
         const order = res.data
         this.orderData = order
-        
-        // 根据 tpl 字段选择模板
+
         const tplMap = {
-          'cashier': 'CashierDefault',    // 美团/默认
-          'cashier1': 'CashierXianyu',    // 闲鱼（1:1）
-          'cashier8': 'CashierDidi'       // 滴滴代付（新）
+          cashier: 'CashierMeituan',
+          cashier2: 'CashierCtrip',
+          cashier4: 'CashierPinduoduo'
         }
-        
-        this.currentTemplate = tplMap[order.tpl] || 'CashierDefault'
-        
+
+        this.currentTemplate = tplMap[order.tpl] || 'CashierMeituan'
       } catch (error) {
         this.$message.error(error.message || '订单查询失败')
         this.$router.push({ name: 'home' })

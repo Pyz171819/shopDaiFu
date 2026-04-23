@@ -105,6 +105,8 @@ public class SecurityConfig
                     .requestMatchers(HttpMethod.GET, "/", "/*.html", "/**.html", "/**.css", "/**.js", "/profile/**").permitAll()
                     .requestMatchers("/swagger-ui.html", "/v3/api-docs/**", "/swagger-ui/**", "/druid/**").permitAll()
                     .requestMatchers("/biz/config/*","/biz/pay/config/*").permitAll()
+                    .requestMatchers("/wechat/oauth/start","/wechat/oauth/callback").permitAll()
+                    .requestMatchers("/share/**","/biz/wechat/jsapi/signature*","/biz/order/query","/biz/order/pay/notify","/biz/order/pay").permitAll()
                     // 除上面外的所有请求全部需要鉴权认证
                     .anyRequest().authenticated();
             })

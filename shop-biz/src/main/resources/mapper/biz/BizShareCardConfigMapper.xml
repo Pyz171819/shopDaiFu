@@ -48,6 +48,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where id = #{id}
     </select>
 
+    <select id="selectBizShareCardConfigBytpl" parameterType="String" resultMap="BizShareCardConfigResult">
+        <include refid="selectBizShareCardConfigVo"/>
+        where tpl = #{id}
+    </select>
+
     <insert id="insertBizShareCardConfig" parameterType="BizShareCardConfig" useGeneratedKeys="true" keyProperty="id">
         insert into biz_share_card_config
         <trim prefix="(" suffix=")" suffixOverrides=",">

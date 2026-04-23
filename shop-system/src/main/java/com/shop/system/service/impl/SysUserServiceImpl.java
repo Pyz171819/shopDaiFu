@@ -268,10 +268,13 @@ public class SysUserServiceImpl implements ISysUserService
 //        insertUserRole(user);
 
         // 新增业务用户信息
-        user.getBizUser().setSysUserId(user.getUserId());
-        bizUsersService.insertBizUsers(user.getBizUser());
+        int i = userMapper.insertUser(user);
+        if (i > 0){
+            user.getBizUser().setSysUserId(user.getUserId());
+            bizUsersService.insertBizUsers(user.getBizUser());
+        }
 
-        return userMapper.insertUser(user);
+        return i;
     }
 
     /**
@@ -310,6 +313,17 @@ public class SysUserServiceImpl implements ISysUserService
         if (user.getBizUser() != null){
             user.getBizUser().setSysUserId(user.getUserId());
             bizUsersService.updateBizUsersByUserId(user.getBizUser());
+        }
+        return userMapper.updateUser(user);
+    }
+    @Override
+    @Transactional
+    public int updateUserByNotice(SysUser user)
+    {
+        // 修改业务用户信息
+        if (user.getBizUser() != null){
+            user.getBizUser().setSysUserId(user.getUserId());
+            bizUsersService.updateBizUsersByUserIdAndNotice(user.getBizUser());
         }
         return userMapper.updateUser(user);
     }

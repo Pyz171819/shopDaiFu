@@ -1,6 +1,7 @@
 <template>
   <div class="image-upload">
     <el-upload
+        v-if="!currentValue || !disabled"
         class="image-uploader"
         :action="uploadUrl"
         :headers="uploadHeaders"
@@ -14,7 +15,6 @@
       <div v-if="currentValue" class="image-preview">
         <img :src="getImageUrl(currentValue)" class="preview-image" />
         <div v-if="!disabled" class="image-actions" @click.stop>
-          <i class="el-icon-zoom-in action-icon" @click="handlePreview"></i>
           <i class="el-icon-delete action-icon" @click="handleRemove"></i>
         </div>
       </div>
@@ -24,6 +24,11 @@
         <div class="uploader-text">{{ placeholder }}</div>
       </div>
     </el-upload>
+
+    <!-- 禁用状态且有图片时，只显示图片 -->
+    <div v-if="currentValue && disabled" class="image-preview-only">
+      <img :src="getImageUrl(currentValue)" class="preview-image" />
+    </div>
 
     <div v-if="showTip" class="upload-tip">
       请上传
@@ -234,7 +239,7 @@ export default {
 
 .action-icon {
   color: #fff;
-  font-size: 18px;
+  font-size: 30px;
   cursor: pointer;
 }
 

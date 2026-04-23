@@ -144,4 +144,10 @@ public interface SysUserMapper
      * @return 结果
      */
     public SysUser checkEmailUnique(String email);
+
+    public Long countActiveUsers();
+
+    public Long countUsersCreatedBetween(@Param("startTime") Date startTime, @Param("endTime") Date endTime);
+
+    public List<SysUser> selectLatestUsers(@Param("limit") int limit);
 }

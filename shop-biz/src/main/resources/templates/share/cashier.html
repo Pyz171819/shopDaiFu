@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <title>美团外卖</title>
+    <meta name="description" th:content="${shareDesc}">
+
+    <meta property="og:title" th:content="${shareTitle}">
+    <meta property="og:description" th:content="${shareDesc}">
+    <meta property="og:image" th:content="${shareImage}">
+    <meta property="og:url" th:content="${shareUrl}">
+    <meta property="og:type" content="website">
+
+    <link rel="canonical" th:href="${shareUrl}">
+
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; background-color: #F5F5F5; font-family: -apple-system, sans-serif; }
+        .user-header { padding: 20px 15px; display: flex; align-items: center; }
+        .avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid #fff; }
+        .user-info .nick { font-size: 16px; font-weight: bold; margin-bottom: 4px; color: #222; }
+        .user-info .slogan { font-size: 12px; color: #666; }
+        .card { background: #fff; border-radius: 12px; margin: 0 12px 12px; padding: 25px 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+        .pay-amount { text-align: center; font-size: 38px; font-weight: bold; margin-bottom: 5px; font-family: Arial, sans-serif; }
+        .pay-amount::before { content: '¥'; font-size: 22px; margin-right: 4px; }
+        .timer-wrap { display: flex; justify-content: center; align-items: center; margin-bottom: 30px; font-size: 14px; color: #333; }
+        .timer-box { background: #333; color: #fff; padding: 2px 4px; border-radius: 4px; margin: 0 4px; font-weight: bold; }
+        .notice-box { background: #FEF8E5; border-radius: 8px; padding: 15px; font-size: 12px; color: #8B572A; line-height: 1.8; margin-bottom: 15px; }
+        .notice-title { color: #8B572A; margin-bottom: 5px; font-weight: bold; font-size: 13px; }
+        .btn-main { display: block; width: 100%; background: #FDD934; color: #000; font-size: 16px; font-weight: bold; text-align: center; padding: 14px 0; border-radius: 25px; text-decoration: none; border: none; cursor: pointer; margin-top: 15px; }
+        .btn-disabled { background: #ccc; pointer-events: none; }
+        .product-row { display: flex; align-items: center; margin-top: 15px; padding-bottom: 15px; border-bottom: 1px dashed #f5f5f5; }
+        .p-img { width: 60px; height: 60px; background: #f8f8f8; border-radius: 6px; margin-right: 12px; object-fit: cover; flex-shrink: 0; }
+        .p-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .p-name { font-size: 14px; color: #333; line-height: 1.4; margin-bottom: 4px; }
+        .shop-name-header { font-size: 13px; color: #999; font-weight: 600; padding: 8px 12px; background: #fafafa; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #FDD934; }
+    </style>
+</head>
+<body>
+
+<div class="user-header">
+    <img th:src="${userAvatar}" class="avatar" alt="头像">
+    <div class="user-info">
+        <div class="nick" th:text="${userNick}">须尽欢</div>
+        <div class="slogan" th:text="${userSlogan}">Hi~你和我的距离只差一顿外卖~</div>
+    </div>
+</div>
+
+<div class="card">
+    <div th:if="${isPaid}" style="text-align:center; padding: 10px 0;">
+        <div style="font-size: 20px; font-weight: bold; color: #333; margin-bottom: 12px;">已付款</div>
+        <div class="pay-amount" th:text="${order.money}">0.00</div>
+        <div style="color: #888; font-size: 14px; margin-bottom: 20px;">微信支付</div>
+    </div>
+
+    <div th:unless="${isPaid}" style="text-align:center;">
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #333;">需付款</div>
+        <div class="pay-amount" th:text="${order.money}">0.00</div>
+        <div class="timer-wrap" th:if="${remainingSeconds > 0}">
+            支付剩余时间
+            <span class="timer-box" id="m">00</span> :
+            <span class="timer-box" id="s">00</span>
+        </div>
+    </div>
+
+    <div class="notice-box">
+        <div class="notice-title">付款须知</div>
+        1.代付订单创建成功后15分钟内未付款，订单会自动取消，你可以重新下单。<br>
+        2.当代付订单退款成功后，实付金额将原路退还代付人。
+    </div>
+
+    <div th:if="${isPaid}">
+        <a href="https://www.meituan.com" class="btn-main">知道了</a>
+    </div>
+
+    <div th:unless="${isPaid}">
+        <button th:if="${remainingSeconds > 0}" id="friendPayBtn" class="btn-main" type="button">为好友买单</button>
+        <button th:if="${remainingSeconds <= 0}" class="btn-main btn-disabled">订单已过期</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="shop-name-header"
+         th:text="${#lists.isEmpty(orderItems) ? '外卖订单' : orderItems[0]['shopName']}">外卖订单</div>
+
+    <div th:each="item : ${orderItems}" class="product-row">
+        <img th:src="${#strings.startsWith(item['image'], 'http') ? item['image'] : '/api' + item['image']}" class="p-img" alt="商品">
+        <div class="p-info">
+            <div class="p-name" th:text="${item['name']}">商品名</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#999; font-size:12px;">X <span th:text="${item['quantity']}">1</span></span>
+                <span style="font-weight:bold; font-family:Arial;">¥ <span th:text="${item['price']}">0.00</span></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://res2.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+<script th:inline="javascript">
+    const outTradeNo = [[${order.outTradeNo}]];
+    // let remain = [[${remainingSeconds}]];
+    const expireTimestamp = [[${expireTimestamp}]];
+    let paySubmitting = false;
+    let timerId = null;
+
+    function getRemainSeconds() {
+        if (!expireTimestamp) {
+            return 0;
+        }
+        const diff = expireTimestamp - Date.now();
+        if (diff <= 0) {
+            return 0;
+        }
+        return Math.ceil(diff / 1000);
+    }
+
+    function isWechat() {
+        return /micromessenger/i.test(window.navigator.userAgent);
+    }
+
+    function getPayBtn() {
+        return document.getElementById('friendPayBtn');
+    }
+
+    function setPayBtnState(disabled, text) {
+        const btn = getPayBtn();
+        if (!btn) return;
+
+        btn.disabled = disabled;
+
+        if (disabled) {
+            btn.classList.add('btn-disabled');
+        } else {
+            btn.classList.remove('btn-disabled');
+        }
+
+        if (text) {
+            btn.innerText = text;
+        }
+    }
+
+    function jumpToMeituan() {
+        window.location.href = 'https://www.meituan.com';
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function queryOrderPaid() {
+        const resp = await fetch('/api/biz/order/query?outTradeNo=' + encodeURIComponent(outTradeNo), {
+            method: 'GET',
+            credentials: 'same-origin'
+        });
+
+        const res = await resp.json();
+
+        if (!res || res.code !== 200 || !res.data) {
+            return false;
+        }
+
+        const order = res.data;
+        return order.status === '1' || order.status === 1;
+    }
+
+    function updateTimer() {
+        const mEl = document.getElementById('m');
+        const sEl = document.getElementById('s');
+        const remain = getRemainSeconds();
+
+        if (remain <= 0) {
+            if (mEl) mEl.innerText = '00';
+            if (sEl) sEl.innerText = '00';
+            setPayBtnState(true, '订单已过期');
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            return;
+        }
+
+        const m = Math.floor(remain / 60);
+        const s = remain % 60;
+
+        if (mEl) {
+            mEl.innerText = m < 10 ? '0' + m : '' + m;
+        }
+        if (sEl) {
+            sEl.innerText = s < 10 ? '0' + s : '' + s;
+        }
+
+        // 只有未提交支付时，才恢复按钮
+        if (!paySubmitting) {
+            setPayBtnState(false, '为好友买单');
+        }
+    }
+
+    function invokeJsapiPay(payParams) {
+        async function handlePaySuccess() {
+            try {
+                setPayBtnState(true, '正在确认支付结果...');
+
+                for (let i = 0; i < 6; i++) {
+                    const paid = await queryOrderPaid();
+                    if (paid) {
+                        jumpToMeituan();
+                        return;
+                    }
+                    await sleep(1500);
+                }
+
+                window.location.reload();
+            } catch (e) {
+                console.error('查单失败', e);
+                window.location.reload();
+            }
+        }
+
+        function onBridgeReady() {
+            WeixinJSBridge.invoke(
+                'getBrandWCPayRequest',
+                {
+                    appId: payParams.appId,
+                    timeStamp: payParams.timeStamp,
+                    nonceStr: payParams.nonceStr,
+                    package: payParams.packageValue || payParams.package,
+                    signType: payParams.signType || 'MD5',
+                    paySign: payParams.paySign
+                },
+                async function (res) {
+                    paySubmitting = false;
+
+                    if (res.err_msg === 'get_brand_wcpay_request:ok') {
+                        await handlePaySuccess();
+                        return;
+                    }
+
+                    if (getRemainSeconds() > 0) {
+                        setPayBtnState(false, '为好友买单');
+                    } else {
+                        setPayBtnState(true, '订单已过期');
+                    }
+
+                    if (res.err_msg !== 'get_brand_wcpay_request:cancel') {
+                        alert('支付未完成：' + res.err_msg);
+                    }
+                }
+            );
+        }
+
+        if (typeof WeixinJSBridge === 'undefined') {
+            document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
+        } else {
+            onBridgeReady();
+        }
+    }
+
+    async function submitFriendPay() {
+        if (paySubmitting) {
+            return;
+        }
+        if (getRemainSeconds() <= 0) {
+            setPayBtnState(true, '订单已过期');
+            return;
+        }
+
+        if (!isWechat()) {
+            alert('请在微信内打开页面完成支付');
+            return;
+        }
+
+        paySubmitting = true;
+        setPayBtnState(true, '正在调起支付...');
+
+        try {
+            const resp = await fetch('/api/biz/order/pay', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    tradeNo: outTradeNo
+                })
+            });
+            const res = await resp.json();
+
+            if (!res || res.code !== 200 || !res.data || !res.data.payParams) {
+                paySubmitting = false;
+
+                if (getRemainSeconds() > 0) {
+                    setPayBtnState(false, '为好友买单');
+                } else {
+                    setPayBtnState(true, '订单已过期');
+                }
+                alert((res && res.msg) || '发起支付失败');
+                return;
+            }
+
+            invokeJsapiPay(res.data.payParams);
+        } catch (e) {
+            paySubmitting = false;
+            if (getRemainSeconds() > 0) {
+                setPayBtnState(false, '为好友买单');
+            } else {
+                setPayBtnState(true, '订单已过期');
+            }
+            alert('支付请求异常');
+            console.error(e);
+        }
+    }
+
+    const payBtn = getPayBtn();
+    if (payBtn) {
+        payBtn.addEventListener('click', submitFriendPay);
+    }
+
+    updateTimer();
+    timerId = setInterval(updateTimer, 1000);
+
+    async function initWechatShare() {
+        if (!isWechat()) {
+            return;
+        }
+
+        try {
+            const signUrl = window.location.href.split('#')[0];
+            const apiUrl = '/api/biz/wechat/jsapi/signature?url=' + encodeURIComponent(signUrl);
+
+            const resp = await fetch(apiUrl, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            const res = await resp.json();
+
+            if (!res || res.code !== 200 || !res.data) {
+                console.error('获取微信签名失败:', res);
+                return;
+            }
+
+            const config = res.data;
+
+            wx.config({
+                debug: false,
+                appId: config.appId,
+                timestamp: config.timestamp,
+                nonceStr: config.nonceStr,
+                signature: config.signature,
+                jsApiList: [
+                    'updateAppMessageShareData',
+                    'onMenuShareAppMessage'
+                ]
+            });
+
+            wx.ready(function () {
+                const shareData = {
+                    title: [[${shareTitle}]],
+                    desc: [[${shareDesc}]],
+                    link: [[${shareUrl}]],
+                    imgUrl: [[${shareImage}]]
+                };
+
+                if (typeof wx.onMenuShareAppMessage === 'function') {
+                    wx.onMenuShareAppMessage(shareData);
+                }
+
+                if (typeof wx.updateAppMessageShareData === 'function') {
+                    wx.updateAppMessageShareData(shareData);
+                }
+            });
+
+            wx.error(function (err) {
+                console.error('微信 JSSDK 配置失败:', err);
+            });
+        } catch (e) {
+            console.error('初始化微信分享失败:', e);
+        }
+    }
+
+    initWechatShare();
+</script>
+
+</body>
+</html>

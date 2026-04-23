@@ -1,9 +1,11 @@
 /**
- * 设备和浏览器环境检测工具
+ * Device and browser environment helpers.
  */
 
+const WECHAT_ENTRY_URL_KEY = 'wechat_entry_url'
+
 /**
- * 判断是否为移动设备
+ * Determine whether current device is mobile.
  */
 export function isMobile() {
   const ua = navigator.userAgent
@@ -11,7 +13,15 @@ export function isMobile() {
 }
 
 /**
- * 判断是否为微信内置浏览器
+ * Determine whether current device is iOS.
+ */
+export function isIOS() {
+  const ua = navigator.userAgent
+  return /iPhone|iPad|iPod/i.test(ua)
+}
+
+/**
+ * Determine whether current browser is WeChat.
  */
 export function isWechat() {
   const ua = navigator.userAgent.toLowerCase()
@@ -19,21 +29,52 @@ export function isWechat() {
 }
 
 /**
- * 获取客户端环境类型（用于支付接口）
- * @returns {string} 'wechat_h5' | 'mobile_h5' | 'pc'
+ * Get current page URL without hash.
  */
-export function getClientType() {
-  if (isWechat()) {
-    return 'wechat_h5' // 微信内置浏览器
-  } else if (isMobile()) {
-    return 'mobile_h5' // 手机外部浏览器
-  } else {
-    return 'pc' // PC浏览器
+export function getCurrentPageUrl() {
+  return window.location.href.split('#')[0]
+}
+
+/**
+ * For WeChat JS-SDK, iOS must use the first page URL in the current session.
+ */
+export function getWechatSignUrl() {
+  const currentUrl = getCurrentPageUrl()
+
+  if (!isWechat()) {
+    return currentUrl
+  }
+
+  try {
+    const cachedUrl = sessionStorage.getItem(WECHAT_ENTRY_URL_KEY)
+
+    if (!cachedUrl) {
+      sessionStorage.setItem(WECHAT_ENTRY_URL_KEY, currentUrl)
+      return currentUrl
+    }
+
+    return isIOS() ? cachedUrl : currentUrl
+  } catch (error) {
+    return currentUrl
   }
 }
 
 /**
- * 获取设备类型
+ * Get client environment type for payment API.
+ * @returns {string} 'wechat_h5' | 'mobile_h5' | 'pc'
+ */
+export function getClientType() {
+  if (isWechat()) {
+    return 'wechat_h5'
+  } else if (isMobile()) {
+    return 'mobile_h5'
+  } else {
+    return 'pc'
+  }
+}
+
+/**
+ * Get device type.
  * @returns {string} 'mobile' | 'pc'
  */
 export function getDeviceType() {
@@ -41,7 +82,7 @@ export function getDeviceType() {
 }
 
 /**
- * 获取浏览器类型
+ * Get browser type.
  * @returns {string} 'wechat' | 'external'
  */
 export function getBrowserType() {

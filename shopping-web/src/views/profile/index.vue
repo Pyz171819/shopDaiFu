@@ -2,39 +2,51 @@
 <template>
   <div class="profile-page">
     <section class="profile-shell">
-      <!--      退出登录按钮-->
+      <!--      头部卡片-->
       <header class="hero-card">
-        <button class="logout-btn" type="button" @click="showLogoutConfirm = true">退出登录</button>
+        <button class="logout-btn" type="button" @click="showLogoutConfirm = true">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+          退出
+        </button>
 
         <!--      头部卡片-->
         <div class="hero-inner">
-          <div class="hero-side">
-            <div class="avatar-frame">
-              <img
-                v-if="userProfile.avatar"
-                :src="getAvatarUrl(userProfile.avatar)"
-                alt="头像"
-                class="avatar-img"
-              />
-              <div v-else class="avatar-core">
-                {{ userProfile.avatarText || "购" }}
+          <div class="hero-main">
+            <div class="avatar-section">
+              <div class="avatar-frame">
+                <img
+                  v-if="userProfile.avatar"
+                  :src="getAvatarUrl(userProfile.avatar)"
+                  alt="头像"
+                  class="avatar-img"
+                />
+                <div v-else class="avatar-core">
+                  {{ userProfile.avatarText || "购" }}
+                </div>
+              </div>
+              <div class="level-badge">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                <span>VIP</span>
               </div>
             </div>
 
-            <div class="hero-badge">
-              <span>店铺等级</span>
-              <strong>PRO</strong>
-            </div>
-          </div>
-
-          <div class="hero-copy">
-            <span class="hero-eyebrow">ACCOUNT CENTER</span>
-            <h1>{{ userProfile.nickname }}</h1>
-            <p class="hero-id">账号 ID: {{ userProfile.userId }}</p>
-
-            <div class="hero-tags">
-              <span class="role-pill">普通用户</span>
-              <span class="role-pill subtle">账户状态正常</span>
+            <div class="hero-content">
+              <div class="user-name-section">
+                <h1>{{ userProfile.nickname }}</h1>
+                <div class="user-badges">
+                  <span class="badge-item verified">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    已认证
+                  </span>
+                </div>
+              </div>
+              <p class="user-id">ID: {{ userProfile.userId }}</p>
             </div>
           </div>
         </div>
@@ -44,14 +56,14 @@
       <section class="stats-grid">
         <article class="stat-card">
           <span class="stat-label">今日流水</span>
-          <strong class="stat-value">￥0.00</strong>
-          <small>今日暂无新的入账记录</small>
+          <strong class="stat-value">￥{{ formatPrice(todayRevenue) }}</strong>
+          <small>{{ todayRevenue > 0 ? '今日已有新的入账记录' : '今日暂无新的入账记录' }}</small>
         </article>
 
         <article class="stat-card accent">
           <span class="stat-label">账户余额</span>
-          <strong class="stat-value">￥0.00</strong>
-          <button class="settlement-btn" type="button">申请结算</button>
+          <strong class="stat-value">￥{{ formatPrice(accountBalance) }}</strong>
+          <button class="settlement-btn" type="button" @click="openSettlementModal">申请结算</button>
         </article>
       </section>
 
@@ -110,7 +122,7 @@
             </div>
             <div class="order-state">
               <span :class="['state-text', getStatusClass(order.status)]">{{ statusTextMap[order.status] }}</span>
-              <button class="trash-btn" type="button" aria-label="删除订单">删除</button>
+              <button class="trash-btn" type="button" aria-label="删除订单" @click="confirmDeleteOrder(order)">删除</button>
             </div>
           </div>
 
@@ -119,20 +131,24 @@
               <img :src="order.cover" :alt="order.name">
             </div>
             <div v-else class="order-cover" :style="{ background: order.cover }">{{ order.short }}</div>
+            
             <div class="order-info">
               <h3>{{ order.name }}</h3>
               <p>{{ order.desc }}</p>
-              <strong>￥{{ formatPrice(order.amount) }}</strong>
+              <strong>{{ formatPrice(order.amount) }}</strong>
             </div>
-            <button
-              v-if="order.status == 0"
-              class="pay-btn"
-              type="button"
-              @click="payOrder(order)"
-            >
-              去支付
-            </button>
-            <span v-else class="paid-tag">已完成</span>
+
+            <div class="order-action">
+              <button
+                v-if="order.status == 0"
+                class="pay-btn"
+                type="button"
+                @click="payOrder(order)"
+              >
+                去支付
+              </button>
+              <span v-else class="paid-tag">已完成</span>
+            </div>
           </div>
         </article>
       </section>
@@ -205,10 +221,48 @@
             </div>
           </div>
 
-          <div class="empty-block compact">
+          <div v-if="settlementsLoading" class="empty-block compact">
+            <div class="empty-icon wallet"></div>
+            <h3>加载中...</h3>
+            <p>正在获取结算记录</p>
+          </div>
+
+          <div v-else-if="settlements.length === 0" class="empty-block compact">
             <div class="empty-icon wallet"></div>
             <h3>暂无结算记录</h3>
             <p>暂时没有结算数据，如需处理可联系管理员。</p>
+          </div>
+
+          <div v-else class="settlement-list">
+            <article v-for="settlement in settlements" :key="settlement.id" class="settlement-card">
+              <div class="settlement-header">
+                <div>
+                  <span class="settlement-label">申请时间</span>
+                  <strong class="settlement-time">{{ settlement.createTime }}</strong>
+                </div>
+                <span :class="['settlement-status', getSettlementStatusClass(settlement.status)]">
+                  {{ settlement.statusText }}
+                </span>
+              </div>
+
+              <div class="settlement-body">
+                <div class="settlement-amount-section">
+                  <span class="settlement-amount-label">结算金额</span>
+                  <strong class="settlement-amount">¥{{ formatPrice(settlement.amount) }}</strong>
+                </div>
+
+
+                <div v-if="settlement.remark && Number(settlement.status) === 2" class="settlement-remark rejected">
+                  <span class="remark-label">拒绝原因</span>
+                  <p class="remark-text">{{ settlement.remark }}</p>
+                </div>
+
+                <div v-else-if="settlement.remark" class="settlement-remark">
+                  <span class="remark-label">备注</span>
+                  <p class="remark-text">{{ settlement.remark }}</p>
+                </div>
+              </div>
+            </article>
           </div>
         </div>
       </section>
@@ -318,6 +372,76 @@
         </div>
       </div>
 
+      <!--      申请结算弹窗-->
+      <div v-if="showSettlementModal" class="modal-mask" @click.self="closeSettlementModal">
+        <div class="confirm-modal settlement-modal">
+          <div class="modal-top">
+            <h3>申请结算</h3>
+            <button class="close-btn" type="button" @click="closeSettlementModal">×</button>
+          </div>
+
+          <div class="balance-display">
+            <span class="balance-label">当前余额:</span>
+            <span class="balance-value">¥{{ userProfile.bizUser.balance }}</span>
+          </div>
+
+          <label class="form-field">
+            <span>结算金额</span>
+            <input
+              v-model.trim="settlementForm.money"
+              type="number"
+              min="0"
+              placeholder="请输入金额"
+            />
+          </label>
+
+          <div class="form-field">
+            <span>上传凭证</span>
+            <div class="upload-field">
+              <ImageUpload v-model="settlementForm.qrcode" />
+            </div>
+            <small style="color: #94a3b8; font-size: 12px; margin-top: 8px; display: block;">
+              请上传收款凭证
+            </small>
+          </div>
+
+          <div class="settlement-actions">
+            <button class="modal-btn secondary" type="button" @click="closeSettlementModal">
+              取消
+            </button>
+            <button
+              class="modal-btn primary"
+              type="button"
+              @click="submitSettlement"
+              :disabled="settlementSubmitting"
+            >
+              {{ settlementSubmitting ? "提交中..." : "确认申请" }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!--      删除订单确认弹窗-->
+      <div v-if="showDeleteOrderConfirm" class="modal-mask" @click.self="cancelDeleteOrder">
+        <div class="confirm-modal">
+          <h3>确认删除订单？</h3>
+          <p v-if="orderToDelete">确定要删除订单"{{ orderToDelete.name }}"吗？删除后将无法恢复。</p>
+          <div class="confirm-actions">
+            <button class="modal-btn secondary" type="button" @click="cancelDeleteOrder">
+              取消
+            </button>
+            <button 
+              class="modal-btn danger" 
+              type="button" 
+              @click="handleDeleteOrder"
+              :disabled="orderDeleting"
+            >
+              {{ orderDeleting ? "删除中..." : "确认删除" }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!--      退出登录按钮弹窗-->
       <div v-if="showLogoutConfirm" class="modal-mask" @click.self="showLogoutConfirm = false">
         <div class="confirm-modal">
@@ -340,9 +464,10 @@ import ImageUpload from "@/components/ImageUpload.vue";
 import { getUserSimpleInfo } from "../../api/auth";
 import { listCategory } from "../../api/home";
 import { createProduct, getMyProducts } from "../../api/products";
-import { getMyOrders } from "../../api/order";
+import { getMyOrders, getTodayRevenue, deleteOrder } from "../../api/order";
 import { updateUser } from "../../api/user";
-import { clearAuth, setPaymentSummary } from "../../utils/app-state";
+import { applySettlement, getSettlementList } from "../../api/settlement";
+import { clearAuth } from "../../utils/app-state";
 
 export default {
   name: "ProfilePage",
@@ -354,12 +479,19 @@ export default {
       userProfile: {},
       showLogoutConfirm: false,
       showProductModal: false,
+      showSettlementModal: false,
+      showDeleteOrderConfirm: false,
+      orderToDelete: null,
       productsLoading: false,
       productSubmitting: false,
       profileSaving: false,
+      settlementSubmitting: false,
+      orderDeleting: false,
       avatarVersion: Date.now(),
       activeActionTab: "我的订单",
       activeStatus: "all",
+      accountBalance: 0,
+      todayRevenue: 0,
 
       profileForm: {
         nickname: "",
@@ -374,10 +506,17 @@ export default {
         shopName: ""
       },
 
+      settlementForm: {
+        amount: "",
+        certificate: ""
+      },
+
       categories: [],
       myProducts: [],
       orders: [],
       ordersLoading: false,
+      settlements: [],
+      settlementsLoading: false,
 
       actionTabs: ["我的订单", "商品管理", "结算记录", "修改资料"],
       statusFilters: [
@@ -408,6 +547,8 @@ export default {
     activeActionTab(newVal) {
       if (newVal === '商品管理') {
         this.fetchMyProducts();
+      } else if (newVal === '结算记录') {
+        this.fetchSettlements();
       }
     }
   },
@@ -434,6 +575,7 @@ export default {
 
         const nickname = profile.nickName || profile.nickname || "";
         const userId = profile.userId ;
+        const accountBalance = profile.bizUser.balance ;
         const userName = profile.userName || profile.username || "";
         const avatar = profile.avatar || "";
 
@@ -453,7 +595,9 @@ export default {
 
         this.profileForm.nickname = nickname;
         this.profileForm.avatar = avatar;
+        this.accountBalance = accountBalance
         this.fetchMyOrders(userId);
+        this.fetchTodayRevenue(userId);
 
         this.avatarVersion = Date.now();
       } catch (error) {
@@ -474,6 +618,23 @@ export default {
       } catch (error) {
         this.categories = [];
         this.showMessage("error", error.message || "获取分类失败");
+      }
+    },
+
+    async fetchTodayRevenue(userId) {
+      try {
+        if (!userId) {
+          return;
+        }
+        
+        const res = await getTodayRevenue(userId);
+        if (res.code === 200) {
+          // 后端返回BigDecimal，可能在data字段中
+          this.todayRevenue = Number(res.data || 0);
+        }
+      } catch (error) {
+        // 静默失败，使用默认值0
+        console.error('获取今日流水失败:', error);
       }
     },
 
@@ -703,6 +864,42 @@ export default {
       });
     },
 
+    confirmDeleteOrder(order) {
+      this.orderToDelete = order;
+      this.showDeleteOrderConfirm = true;
+    },
+
+    cancelDeleteOrder() {
+      this.orderToDelete = null;
+      this.showDeleteOrderConfirm = false;
+    },
+
+    async handleDeleteOrder() {
+      if (!this.orderToDelete || this.orderDeleting) return;
+
+      this.orderDeleting = true;
+      try {
+        const res = await deleteOrder(this.orderToDelete.outTradeNo);
+        
+        if (Number(res.code) !== 200) {
+          throw new Error(res.msg || "删除订单失败");
+        }
+        
+        this.showMessage("success", res.msg || "订单已删除");
+        this.cancelDeleteOrder();
+        
+        // 刷新订单列表
+        const userId = this.userProfile.userId;
+        if (userId) {
+          await this.fetchMyOrders(userId);
+        }
+      } catch (error) {
+        this.showMessage("error", error.message || "删除订单失败");
+      } finally {
+        this.orderDeleting = false;
+      }
+    },
+
     async saveProfileInfo() {
       if (this.profileSaving) return;
 
@@ -748,6 +945,134 @@ export default {
       } finally {
         this.profileSaving = false;
       }
+    },
+
+    async fetchSettlements() {
+      this.settlementsLoading = true;
+      try {
+        const userId = this.userProfile.userId;
+        if (!userId) {
+          throw new Error('用户ID不存在');
+        }
+        
+        const res = await getSettlementList(userId);
+        this.settlements = (res.rows || res.data || []).map(item => this.normalizeSettlement(item));
+        console.log('res：',res);
+        console.log('this.settlements：',this.settlements);
+        
+      } catch (error) {
+        this.settlements = [];
+        this.showMessage("error", error.message || "获取结算记录失败");
+      } finally {
+        this.settlementsLoading = false;
+      }
+    },
+
+    normalizeSettlement(item) {
+      return {
+        id: item.id,
+        amount: Number(item.money || 0),
+        createTime: item.createTime || '',
+        auditTime: item.auditTime || '',
+        payTime: item.payTime || '',
+        status: Number(item.status || 0),
+        statusText: this.getSettlementStatusText(item.status),
+        certificate: item.qrcode || '',
+        remark: item.reason || item.remark || '',
+        withdrawNo: item.withdrawNo || '',
+        nickName: item.nickName || ''
+      };
+    },
+
+    getSettlementStatusText(status) {
+      const statusMap = {
+        '0': '审核中',
+        '1': '已通过',
+        '2': '已拒绝',
+        0: '审核中',
+        1: '已通过',
+        2: '已拒绝'
+      };
+      return statusMap[status] || '未知';
+    },
+
+    openSettlementModal() {
+      this.resetSettlementForm();
+      this.showSettlementModal = true;
+    },
+
+    closeSettlementModal() {
+      this.showSettlementModal = false;
+      this.resetSettlementForm();
+    },
+
+    resetSettlementForm() {
+      this.settlementForm = {
+        amount: "",
+        certificate: ""
+      };
+    },
+
+    async submitSettlement() {
+      if (this.settlementSubmitting) return;
+      const userId = this.userProfile.userId;
+      const amount = this.userProfile.bizUser.balance;
+      
+      if (!this.settlementForm.money || isNaN(amount) || amount <= 0) {
+        this.showMessage("warning", "请输入有效的结算金额");
+        return;
+      }
+
+      if (amount < this.settlementForm.money) {
+        this.showMessage("warning", "结算金额不能大于账户余额");
+        return;
+      }
+
+      if (!this.settlementForm.qrcode) {
+        this.showMessage("warning", "请上传收款凭证");
+        return;
+      }
+
+      const payload = {
+        userId: userId,
+        money:  this.settlementForm.money,
+        qrcode: this.settlementForm.qrcode
+      };
+
+      this.settlementSubmitting = true;
+      try {
+        const res = await applySettlement(payload);
+        
+        if (Number(res.code) !== 200) {
+          throw new Error(res.msg || "结算申请提交失败");
+        }
+        
+        this.showMessage("success", "结算申请已提交，请等待审核");
+        this.fetchUserProfile();
+        this.closeSettlementModal();
+
+      } catch (error) {
+        this.showMessage("error", error.message || "结算申请提交失败");
+      } finally {
+        this.settlementSubmitting = false;
+      }
+    },
+
+    getSettlementStatusClass(status) {
+      // 转换为数字进行比较
+      const numStatus = Number(status);
+      if (numStatus === 0) return 'pending';
+      if (numStatus === 1) return 'approved';
+      if (numStatus === 2) return 'rejected';
+      return 'unknown';
+    },
+
+    getImageUrl(image) {
+      if (!image) return "";
+      if (image.startsWith("http://") || image.startsWith("https://")) {
+        return image;
+      }
+      return `/api${image}`;
     },
 
     handleLogout() {
@@ -803,114 +1128,46 @@ export default {
 .hero-card {
   position: relative;
   overflow: hidden;
-  border-radius: 34px;
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.18), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(255, 181, 107, 0.12), transparent 24%),
-    linear-gradient(135deg, #111827 0%, #172554 55%, #0f172a 100%);
-  box-shadow: 0 28px 64px rgba(15, 23, 42, 0.2);
+  border-radius: 24px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.3);
 }
+
 .hero-card::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 32%);
+  top: -50%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%);
   pointer-events: none;
 }
 
 .hero-inner {
   position: relative;
   z-index: 1;
-  min-height: 300px;
-  padding: 34px;
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
-  justify-content: center;
+  padding: 32px 24px;
 }
 
-.hero-copy {
-  min-width: 0;
-  color: #fff;
+.hero-main {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  text-align: center;
+  gap: 20px;
 }
 
-.hero-eyebrow,
-.panel-eyebrow {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.22em;
-}
-
-.hero-eyebrow {
-  color: rgba(191, 219, 254, 0.82);
-}
-
-.hero-copy h1 {
-  margin: 14px 0 0;
-  font-size: clamp(34px, 4vw, 46px);
-  line-height: 1.06;
-  letter-spacing: 0.01em;
-}
-
-.hero-id {
-  margin: 14px 0 0;
-  color: rgba(226, 232, 240, 0.76);
-  font-size: 15px;
-}
-
-.hero-tags {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.role-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 34px;
-  padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  backdrop-filter: blur(10px);
-}
-
-.role-pill.subtle {
-  color: rgba(226, 232, 240, 0.88);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.hero-side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  justify-self: end;
-  transform: translateX(18px);
+.avatar-section {
+  position: relative;
+  flex-shrink: 0;
 }
 
 .avatar-frame {
-  width: 142px;
-  height: 142px;
-  padding: 6px;
+  width: 80px;
+  height: 80px;
+  padding: 4px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.52), rgba(148, 163, 184, 0.14));
-  box-shadow:
-    0 18px 34px rgba(15, 23, 42, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(147, 197, 253, 0.2));
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
 }
 
 .avatar-img,
@@ -929,49 +1186,112 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: #fff;
-  font-size: 40px;
+  font-size: 32px;
   font-weight: 800;
 }
 
-.hero-badge {
-  min-width: 136px;
-  padding: 14px 18px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  text-align: center;
-  backdrop-filter: blur(12px);
-}
-
-.hero-badge span {
-  display: block;
-  color: rgba(226, 232, 240, 0.8);
-  font-size: 12px;
-}
-
-.hero-badge strong {
-  display: block;
-  margin-top: 6px;
+.level-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
   color: #fff;
-  font-size: 28px;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.level-badge svg {
+  flex-shrink: 0;
+}
+
+.hero-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.user-name-section h1 {
+  margin: 0;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.user-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.badge-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-item.verified {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.badge-item svg {
+  flex-shrink: 0;
+}
+
+.user-id {
+  margin: 8px 0 0;
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
 }
 
 .logout-btn {
   position: absolute;
-  top: 18px;
-  right: 18px;
+  top: 16px;
+  right: 16px;
   z-index: 2;
-  height: 38px;
-  padding: 0 16px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.logout-btn svg {
+  flex-shrink: 0;
 }
 
 .stats-grid {
@@ -1122,7 +1442,8 @@ export default {
 }
 
 .order-card {
-  padding: 22px;
+  padding: 0;
+  overflow: hidden;
 }
 
 .order-card + .order-card {
@@ -1134,19 +1455,26 @@ export default {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  padding: 16px 16px 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .order-caption {
   display: block;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .order-time {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
   color: #0f172a;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .order-state {
@@ -1158,56 +1486,56 @@ export default {
 .state-text {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 700;
 }
 
 .state-text.pending {
-  background: rgba(251, 191, 36, 0.14);
+  background: #fef3c7;
   color: #b45309;
 }
 
 .state-text.paid {
-  background: rgba(34, 197, 94, 0.12);
-  color: #15803d;
+  background: #d1fae5;
+  color: #065f46;
 }
 
 .trash-btn {
   border: none;
   background: transparent;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
+  padding: 4px 8px;
 }
 
 .order-body {
-  display: grid;
-  grid-template-columns: 78px minmax(0, 1fr) auto;
-  gap: 16px;
+  display: flex;
+  gap: 12px;
   align-items: center;
-  margin-top: 18px;
+  padding: 16px;
 }
 
 .order-cover {
-  width: 78px;
-  height: 78px;
-  border-radius: 22px;
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   flex-shrink: 0;
 }
 
 .order-cover-img {
-  width: 78px;
-  height: 78px;
-  border-radius: 22px;
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
   background: #f5f7fa;
@@ -1222,23 +1550,51 @@ export default {
 
 .order-info {
   min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .order-info h3 {
   margin: 0;
   color: #0f172a;
-  font-size: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .order-info p {
-  margin: 8px 0 10px;
+  margin: 4px 0 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .order-info strong {
+  display: block;
+  margin-top: 6px;
   color: #f97316;
-  font-size: 28px;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: Arial, sans-serif;
+}
+
+.order-info strong::before {
+  content: '¥';
+  font-size: 14px;
+  margin-right: 2px;
+}
+
+.order-action {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .goods-panel {
@@ -1252,39 +1608,43 @@ export default {
 
 .product-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 14px 16px;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
   border-radius: 20px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 255, 0.9));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 10px 20px rgba(148, 163, 184, 0.08);
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(148, 163, 184, 0.12);
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.product-card + .product-card {
+  margin-top: 14px;
 }
 
 .product-main {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
   min-width: 0;
   flex: 1;
 }
 
 .product-cover {
-  width: 74px;
-  height: 74px;
-  border-radius: 18px;
+  width: 100%;
+  height: 180px;
+  border-radius: 0;
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #eef4ff, #ffffff);
+  background: linear-gradient(135deg, #eef4ff, #dbeafe);
   color: #2563eb;
-  font-size: 22px;
+  font-size: 48px;
   font-weight: 800;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  position: relative;
 }
 
 .product-cover-img {
@@ -1297,27 +1657,31 @@ export default {
 .product-info {
   min-width: 0;
   flex: 1;
+  padding: 16px;
 }
 
 .product-heading {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+  margin-bottom: 10px;
 }
 
 .product-heading h3 {
   margin: 0;
   color: #0f172a;
-  font-size: 18px;
-  line-height: 1.35;
+  font-size: 17px;
+  line-height: 1.4;
+  font-weight: 600;
+  flex: 1;
 }
 
 .product-meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
@@ -1325,43 +1689,52 @@ export default {
 .product-tag {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 0 9px;
+  min-height: 26px;
+  padding: 0 10px;
   border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .product-category {
-  background: rgba(37, 99, 235, 0.08);
-  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
 }
 
 .product-tag {
-  background: rgba(15, 23, 42, 0.08);
-  color: #475569;
+  background: rgba(148, 163, 184, 0.12);
+  color: #64748b;
 }
 
 .product-price {
   display: block;
-  margin-top: 10px;
+  margin-top: 8px;
   color: #ff4d4f;
-  font-size: 24px;
-  line-height: 1.1;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 700;
+  font-family: Arial, sans-serif;
+}
+
+.product-price::before {
+  content: '¥';
+  font-size: 18px;
+  margin-right: 2px;
 }
 
 .product-status {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
+  min-height: 28px;
   padding: 0 12px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .product-status.approved {
-  background: #28a745;
+  background: #10b981;
   color: #fff;
 }
 
@@ -1369,6 +1742,7 @@ export default {
   background: #f59e0b;
   color: #fff;
 }
+
 .product-status.rejected {
   background: #ef4444;
   color: #fff;
@@ -1541,26 +1915,33 @@ export default {
 }
 
 .pay-btn {
-  height: 42px;
-  padding: 0 18px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ffb347, #ff7a18);
+  height: 36px;
+  padding: 0 20px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fb923c, #f97316);
   color: #fff;
   font-size: 13px;
-  font-weight: 800;
-  box-shadow: 0 12px 22px rgba(249, 115, 22, 0.24);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.pay-btn:active {
+  transform: scale(0.98);
 }
 
 .paid-tag {
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
+  min-height: 28px;
   padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(34, 197, 94, 0.12);
-  color: #15803d;
+  border-radius: 14px;
+  background: #d1fae5;
+  color: #065f46;
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .publish-btn {
@@ -1725,6 +2106,180 @@ export default {
   margin-top: 22px;
 }
 
+.settlement-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.settlement-modal {
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.balance-display {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.balance-label {
+  display: block;
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.balance-value {
+  display: block;
+  color: #22c55e;
+  font-size: 32px;
+  font-weight: 800;
+  font-family: Arial, sans-serif;
+}
+
+.settlement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settlement-card {
+  border: 1px solid rgba(203, 213, 225, 0.6);
+  border-radius: 20px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 12px rgba(148, 163, 184, 0.08);
+}
+
+.settlement-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed #e5e7eb;
+}
+
+.settlement-label {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.settlement-time {
+  display: block;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.settlement-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.settlement-status.pending {
+  background: rgba(251, 191, 36, 0.14);
+  color: #b45309;
+}
+
+.settlement-status.approved {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+}
+
+.settlement-status.rejected {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.settlement-body {
+  padding-top: 16px;
+}
+
+.settlement-amount-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.settlement-amount-label {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.settlement-amount {
+  color: #22c55e;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: Arial, sans-serif;
+}
+
+.settlement-certificate {
+  margin-bottom: 16px;
+}
+
+.certificate-label {
+  display: block;
+  color: #64748b;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.certificate-img {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+}
+
+.settlement-remark {
+  padding: 12px;
+  background: #fef3c7;
+  border-radius: 12px;
+}
+
+.settlement-remark.rejected {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.remark-label {
+  display: block;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.settlement-remark.rejected .remark-label {
+  color: #991b1b;
+}
+
+.remark-text {
+  color: #78350f;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.settlement-remark.rejected .remark-text {
+  color: #dc2626;
+}
+
 .modal-btn {
   height: 38px;
   padding: 0 16px;
@@ -1736,6 +2291,17 @@ export default {
 .modal-btn.secondary {
   background: #eef2f7;
   color: #475569;
+}
+
+.modal-btn.primary {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+}
+
+.modal-btn.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .modal-btn.danger {
@@ -1755,24 +2321,6 @@ export default {
     padding-top: 20px;
   }
 
-  .hero-inner {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-
-  .hero-side {
-    flex-direction: column;
-    justify-content: center;
-    justify-self: center;
-    transform: none;
-  }
-
-  .product-card {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 14px;
-  }
-
 }
 
 @media (max-width: 768px) {
@@ -1782,46 +2330,46 @@ export default {
   }
 
   .hero-card {
-    border-radius: 0 0 28px 28px;
-    box-shadow: none;
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
   }
 
   .hero-inner {
-    min-height: 0;
-    padding: 28px 16px 22px;
-    gap: 20px;
+    padding: 24px 16px;
   }
 
-  .hero-copy h1 {
-    font-size: 28px;
-  }
-
-  .hero-id {
-    font-size: 13px;
-  }
-
-  .hero-side {
-    flex-direction: column;
-    align-items: center;
-    justify-self: center;
-    transform: none;
+  .hero-main {
+    gap: 16px;
   }
 
   .avatar-frame {
-    width: 102px;
-    height: 102px;
+    width: 70px;
+    height: 70px;
   }
 
   .avatar-core {
-    font-size: 30px;
+    font-size: 28px;
+  }
+
+  .user-name-section h1 {
+    font-size: 20px;
+  }
+
+  .user-id {
+    font-size: 12px;
   }
 
   .logout-btn {
     top: 12px;
     right: 12px;
-    height: 34px;
-    padding: 0 12px;
+    height: 28px;
+    padding: 0 10px;
     font-size: 11px;
+  }
+
+  .logout-btn svg {
+    width: 12px;
+    height: 12px;
   }
 
   .stats-grid,
@@ -1887,37 +2435,6 @@ export default {
 
   .order-info strong {
     font-size: 20px;
-  }
-
-  .pay-btn,
-  .paid-tag {
-    grid-column: 1 / -1;
-    justify-self: start;
-    margin-top: 6px;
-  }
-
-  .product-main {
-    align-items: flex-start;
-  }
-
-  .product-cover {
-    width: 64px;
-    height: 64px;
-    border-radius: 16px;
-    font-size: 20px;
-  }
-
-  .product-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .product-heading h3 {
-    font-size: 16px;
-  }
-
-  .product-price {
-    font-size: 22px;
   }
 
   .goods-empty-state,
@@ -1992,8 +2509,14 @@ export default {
 }
 
 @media (max-width: 420px) {
-  .hero-copy h1 {
-    font-size: 24px;
+  .user-name-section h1 {
+    font-size: 18px;
+  }
+
+  .user-name-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 
   .hero-tags {
@@ -2020,11 +2543,6 @@ export default {
 
   .order-filters {
     grid-template-columns: 1fr;
-  }
-
-  .product-main {
-    flex-direction: column;
-    gap: 12px;
   }
 
   .modal-mask {

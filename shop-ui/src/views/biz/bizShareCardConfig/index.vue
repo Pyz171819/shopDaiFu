@@ -315,7 +315,7 @@ export default {
     /** 删除按钮操作 */
     handleDelete(row) {
       const ids = row.id || this.ids
-      this.$modal.confirm('是否确认删除分享卡片配置编号为"' + ids + '"的数据项？').then(function() {
+      this.$modal.confirm('是否确认删除此分享卡片配置数据项？').then(function() {
         return delBizShareCardConfig(ids)
       }).then(() => {
         this.getList()

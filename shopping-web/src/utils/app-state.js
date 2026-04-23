@@ -31,6 +31,10 @@ export function clearProfile() {
 export function clearAuth() {
   removeToken();
   clearProfile();
+  // 清除购物车数据
+  localStorage.removeItem(HOME_CART_KEY);
+  localStorage.removeItem(PAYMENT_SUMMARY_KEY);
+  localStorage.removeItem(CURRENT_ORDER_KEY);
 }
 
 export function setPaymentSummary(summary = {}) {

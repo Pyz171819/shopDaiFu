@@ -1,5 +1,6 @@
 package com.shop.common.core.domain.entity;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import jakarta.validation.constraints.*;
@@ -97,6 +98,16 @@ public class SysUser extends BaseEntity
     private Long roleId;
 
     private BizUsers bizUser;
+    private BigDecimal todayAmount;
+
+
+    public BigDecimal getTodayAmount() {
+        return todayAmount;
+    }
+
+    public void setTodayAmount(BigDecimal todayAmount) {
+        this.todayAmount = todayAmount;
+    }
 
     public SysUser()
     {

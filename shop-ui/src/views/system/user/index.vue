@@ -72,7 +72,7 @@
                   今日: ¥{{ Number(scope.row.todayAmount || 0).toFixed(2) }}
                 </div>
                 <div style="color: #666666; font-size: 16px;">
-                  累计: ¥{{ Number(scope.row.totalAmount || 0).toFixed(2) }}
+                  累计: ¥{{ Number(scope.row.bizUser.balance || 0).toFixed(2) }}
                 </div>
               </div>
             </template>
@@ -132,10 +132,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="归属部门" prop="deptId">
-              <treeselect v-model="form.deptId" :options="enabledDeptOptions" :show-count="true" placeholder="请选择归属部门" />
+            <el-form-item  label="扣率/佣金比例（%）" prop="bizUser.commissionRate" label-width="150px">
+              <el-input v-model="form.bizUser.commissionRate" placeholder="请输入扣率/佣金比例" maxlength="30" />
             </el-form-item>
           </el-col>
+<!--          <el-col :span="12">-->
+<!--            <el-form-item label="归属部门" prop="deptId">-->
+<!--              <treeselect v-model="form.deptId" :options="enabledDeptOptions" :show-count="true" placeholder="请选择归属部门" />-->
+<!--            </el-form-item>-->
+<!--          </el-col>-->
         </el-row>
 
         <el-row>
@@ -170,15 +175,6 @@
           <el-col :span="12">
             <el-form-item  label="初始余额" prop="bizUser.balance">
               <el-input v-model="form.bizUser.balance" placeholder="请输入初始余额" maxlength="30" />
-            </el-form-item>
-          </el-col>
-
-        </el-row>
-
-        <el-row>
-          <el-col :span="24">
-            <el-form-item  label="扣率/佣金比例（%）" prop="bizUser.commissionRate" label-width="150px">
-              <el-input v-model="form.bizUser.commissionRate" placeholder="请输入扣率/佣金比例" maxlength="30" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -274,9 +270,9 @@ export default {
       },
       // 表单校验
       rules: {
-        deptId: [
-          { required: true, message: "部门信息不能为空", trigger: "blur" },
-        ],
+        // deptId: [
+        //   { required: true, message: "部门信息不能为空", trigger: "blur" },
+        // ],
         userType: [
           { required: true, message: "用户类型不能为空", trigger: "blur" },
         ],
@@ -355,7 +351,7 @@ export default {
     reset() {
       this.form = {
         userId: undefined,
-        deptId: undefined,
+        deptId: 101,
         userName: undefined,
         nickName: undefined,
         password: undefined,

@@ -20,4 +20,8 @@ public interface WechatPayGateway {
      * 手机外浏览器 -> H5
      */
     String h5Pay(BizOrder order, String clientIp);
+
+    Map<String, String> parseXmlToMap(String xml);
+
+    boolean verifyNotifySign(Map<String, String> data);
 }

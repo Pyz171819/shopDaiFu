@@ -44,6 +44,7 @@ public interface IBizUsersService
      */
     public int updateBizUsers(BizUsers bizUsers);
     public int updateBizUsersByUserId(BizUsers bizUsers);
+    public int updateBizUsersByUserIdAndNotice(BizUsers bizUsers);
 
     /**
      * 批量删除前台用户业务扩展
