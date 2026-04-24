@@ -202,8 +202,8 @@ export default {
         this.$message.success('订单创建成功')
 
         // 清除购物车数据
-        localStorage.removeItem('shopping-control-home-cart')
-        localStorage.removeItem('shopping-control-payment-summary')
+        // localStorage.removeItem('shopping-control-home-cart')
+        // localStorage.removeItem('shopping-control-payment-summary')
 
         // 在微信环境中，配置分享
         try {
@@ -309,19 +309,19 @@ export default {
 
 .payment-page {
   min-height: 100vh;
-  padding: 18px;
+  padding: 14px;
   background: #eef2f8;
 }
 
 .payment-shell {
-  min-height: calc(100vh - 36px);
+  min-height: calc(100vh - 28px);
   position: relative;
   display: flex;
   flex-direction: column;
 }
 
 .summary-card {
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-radius: 10px;
   background: #ffffff;
   box-shadow: 0 6px 18px rgba(53, 71, 103, 0.06);
@@ -336,28 +336,6 @@ export default {
 }
 
 
-.pay-card-image {
-  width: 100%;
-  height: 90px;
-  object-fit: cover;
-  border-radius: 10px;
-  display: block;
-}
-
-.pay-card-image-empty {
-  width: 100%;
-  height: 90px;
-  border-radius: 10px;
-  background: #f5f7fa;
-  color: #909399;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  padding: 8px;
-  text-align: center;
-}
-
 .summary-price {
   margin-top: 8px;
   display: flex;
@@ -366,7 +344,7 @@ export default {
 }
 
 .summary-price strong {
-  font-size: 36px;
+  font-size: 30px;
   color: #ff4f00;
 }
 
@@ -375,27 +353,18 @@ export default {
 }
 
 .pay-grid {
-  margin-top: 14px;
+  margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  padding-bottom: 120px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  padding-bottom: 100px;
 }
 
 .pay-card {
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
   background: #ffffff;
-  box-shadow: 0 10px 24px rgba(31, 40, 61, 0.08);
-  border: 2px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.pay-card {
-  border-radius: 16px;
-  overflow: hidden;
-  background: #ffffff;
-  box-shadow: 0 10px 24px rgba(31, 40, 61, 0.08);
+  box-shadow: 0 6px 16px rgba(31, 40, 61, 0.07);
   border: 2px solid transparent;
   transition: all 0.2s ease;
 }
@@ -406,27 +375,27 @@ export default {
 
 .pay-card.active {
   border-color: #2ff5ff;
-  box-shadow: 0 12px 28px rgba(47, 245, 255, 0.18);
+  box-shadow: 0 8px 20px rgba(47, 245, 255, 0.18);
 }
 
 .pay-card-banner {
-  padding: 12px 12px 0;
+  padding: 8px 8px 0;
   position: relative;
 }
 
 .pay-card-image {
   width: 100%;
-  height: 120px;
+  height: 84px;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: 9px;
   display: block;
   background: #f5f7fa;
 }
 
 .pay-card-image-empty {
   width: 100%;
-  height: 120px;
-  border-radius: 12px;
+  height: 84px;
+  border-radius: 9px;
   background: #f5f7fa;
   color: #909399;
   display: flex;
@@ -440,46 +409,43 @@ export default {
 .pay-card-overlay {
   position: absolute;
   bottom: 0;
-  left: 12px;
-  right: 12px;
-  padding: 12px;
+  left: 8px;
+  right: 8px;
+  padding: 8px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 4px;
+  gap: 2px;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.4), transparent);
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 9px 9px;
 }
 
 .pay-card-overlay strong {
-  font-size: 18px;
+  font-size: 15px;
   color: #ffffff;
-  line-height: 1.4;
+  line-height: 1.25;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .pay-card-overlay span {
-  font-size: 14px;
+  font-size: 12px;
   color: #ffffff;
-  line-height: 1.4;
+  line-height: 1.25;
   opacity: 0.95;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .use-btn {
-  width: calc(100% - 20px);
-  margin: 12px 10px 12px;
-  height: 36px;
+  width: calc(100% - 16px);
+  margin: 8px;
+  height: 30px;
   border: 1px solid #edf0f6;
   border-radius: 999px;
   background: #ffffff;
   color: #7d8594;
+  font-size: 12px;
   cursor: pointer;
-}
-
-.pay-card:hover {
-  transform: translateY(-2px);
 }
 
 .pay-card-top strong {
@@ -496,17 +462,6 @@ export default {
   line-height: 1;
 }
 
-.use-btn {
-  width: calc(100% - 20px);
-  margin: 12px 10px 12px;
-  height: 36px;
-  border: 1px solid #edf0f6;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #7d8594;
-  cursor: pointer;
-}
-
 .empty-wrap {
   grid-column: 1 / -1;
   padding: 40px 0;
@@ -518,7 +473,7 @@ export default {
 
 .page-footer {
   margin-top: auto;
-  padding: 24px 0 8px;
+  padding: 18px 0 8px;
   display: flex;
   justify-content: center;
   gap: 16px;
@@ -570,7 +525,7 @@ export default {
 
 @media (max-width: 1100px) {
   .pay-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -588,7 +543,7 @@ export default {
   }
 
   .pay-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .page-footer {
@@ -640,12 +595,37 @@ export default {
 
   .pay-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    padding-bottom: 140px;
+    gap: 8px;
+    padding-bottom: 126px;
   }
 
   .pay-card {
-    border-radius: 14px;
+    border-radius: 12px;
+  }
+
+  .pay-card-banner {
+    padding: 7px 7px 0;
+  }
+
+  .pay-card-image,
+  .pay-card-image-empty {
+    height: 72px;
+    border-radius: 8px;
+  }
+
+  .pay-card-overlay {
+    left: 7px;
+    right: 7px;
+    padding: 7px 5px;
+    border-radius: 0 0 8px 8px;
+  }
+
+  .pay-card-overlay strong {
+    font-size: 13px;
+  }
+
+  .pay-card-overlay span {
+    font-size: 10px;
   }
 
   .pay-card-top {
@@ -667,9 +647,9 @@ export default {
   }
 
   .use-btn {
-    width: calc(100% - 16px);
-    height: 30px;
-    margin: 8px;
+    width: calc(100% - 14px);
+    height: 28px;
+    margin: 7px;
     font-size: 11px;
   }
 
@@ -732,7 +712,12 @@ export default {
   }
 
   .pay-grid {
-    gap: 8px;
+    gap: 7px;
+  }
+
+  .pay-card-image,
+  .pay-card-image-empty {
+    height: 66px;
   }
 
   .pay-card-top {

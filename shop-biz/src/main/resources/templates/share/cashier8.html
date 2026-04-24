@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>得物代付</title>
+    <title th:text="${pageTitle}">得物代付</title>
     <meta name="description" th:content="${shareDesc}">
 
     <meta property="og:title" th:content="${shareTitle}">
@@ -207,7 +207,7 @@
 </head>
 <body>
 <div class="cashier-dewu">
-    <div class="top-icons">得物 App</div>
+<!--    <div class="top-icons">得物 App</div>-->
     <div class="header-bg"></div>
     <div class="decoration-layer">
         <div class="quote-overlay" th:text="${shareDesc ?: '这件好物来自得物 App，我很喜欢它，请你快来帮我付个款，谢谢啦！'}">这件好物来自得物 App，我很喜欢它，请你快来帮我付个款，谢谢啦！</div>
@@ -272,7 +272,7 @@
             </th:block>
         </div>
 
-        <button th:if="${isPaid}" class="btn-pay btn-disabled" type="button">支付已完成</button>
+        <button th:if="${isPaid}" class="btn-pay" type="button" onclick="jumpToDewu()">已支付，点击前往官网</button>
         <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pay btn-disabled" type="button">订单已过期</button>
         <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pay" type="button">微信支付</button>
     </div>
@@ -386,7 +386,7 @@
                 for (let i = 0; i < 6; i++) {
                     const paid = await queryOrderPaid();
                     if (paid) {
-                        jumpToDewu();
+                        window.location.reload();
                         return;
                     }
                     await sleep(1500);

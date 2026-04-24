@@ -1,5 +1,6 @@
 package com.shop.biz.controller;
 
+import com.shop.biz.service.IBizConfigService;
 import com.shop.biz.service.IWechatOauthService;
 import com.shop.common.exception.ServiceException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +22,8 @@ public class WechatOauthController {
 
     @Autowired
     private IWechatOauthService wechatOauthService;
+    @Autowired
+    private IBizConfigService bizConfigService;
 
     @GetMapping("/wechat/oauth/start")
     public void startOauth(@RequestParam("returnUrl") String returnUrl,
@@ -34,7 +37,12 @@ public class WechatOauthController {
             throw new ServiceException("returnUrl不能为空");
         }
 
-        String callbackUrl = "https://dfsccsxt.meituandaif.cn"
+        String h5BaseUrl = bizConfigService.selectConfigByKey("h5_base_url");
+        if (StringUtils.isBlank(h5BaseUrl)){
+             throw new ServiceException("h5_base_url为空");
+        }
+        h5BaseUrl = StringUtils.removeEnd(h5BaseUrl, "/");
+        String callbackUrl = h5BaseUrl
                 + "/api/wechat/oauth/callback?returnUrl="
                 + URLEncoder.encode(returnUrl, StandardCharsets.UTF_8);
 

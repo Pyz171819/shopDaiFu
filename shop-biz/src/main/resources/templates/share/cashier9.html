@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>猫眼代付</title>
+    <title th:text="${pageTitle}">猫眼代付</title>
     <meta name="description" th:content="${shareDesc}">
 
     <meta property="og:title" th:content="${shareTitle}">
@@ -24,7 +24,7 @@
         }
         .cashier-maoyan {
             min-height: 100vh;
-            padding-bottom: 24px;
+            padding-bottom: calc(98px + env(safe-area-inset-bottom));
             background: #f5f5f5;
         }
         .heavy-red-card,
@@ -170,7 +170,13 @@
             line-height: 1.8;
         }
         .pay-wrap {
-            padding-top: 4px;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 20;
+            padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+            background: linear-gradient(180deg, rgba(245, 245, 245, 0) 0%, rgba(245, 245, 245, 0.92) 22%, #f5f5f5 48%);
         }
         .btn-pay {
             display: block;
@@ -277,7 +283,7 @@
     </div>
 
     <div class="normal-card pay-wrap">
-        <button th:if="${isPaid}" class="btn-pay btn-disabled" type="button">支付已完成</button>
+        <button th:if="${isPaid}" class="btn-pay" type="button" onclick="jumpToMaoyan()">已支付，点击前往官网</button>
         <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pay btn-disabled" type="button">订单已过期</button>
         <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pay" type="button">立即支付</button>
     </div>
@@ -374,7 +380,7 @@
                 for (let i = 0; i < 6; i++) {
                     const paid = await queryOrderPaid();
                     if (paid) {
-                        jumpToMaoyan();
+                        window.location.reload();
                         return;
                     }
                     await sleep(1500);

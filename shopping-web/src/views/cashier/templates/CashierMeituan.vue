@@ -234,7 +234,8 @@ export default {
     }
   },
   mounted() {
-    document.title = '美团外卖代付'
+    this.applyDocumentTitle()
+    this.fetchShareCardConfig()
     this.calculateRemainingTime()
     this.startTimer()
     this.fetchUserInfo()
@@ -279,10 +280,15 @@ export default {
 
         if (res.code === 200 && res.data) {
           this.shareCardConfig = res.data
+          this.applyDocumentTitle()
         }
       } catch (error) {
         console.error('获取分享卡片配置失败:', error)
       }
+    },
+
+    applyDocumentTitle() {
+      document.title = this.shareCardConfig?.cardName || '美团外卖代付'
     },
 
     async prepareWechatShare() {

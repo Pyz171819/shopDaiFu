@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>美团外卖</title>
+    <title th:text="${pageTitle}">美团外卖</title>
     <meta name="description" th:content="${shareDesc}">
 
     <meta property="og:title" th:content="${shareTitle}">
@@ -72,7 +72,7 @@
     </div>
 
     <div th:if="${isPaid}">
-        <a href="https://www.meituan.com" class="btn-main">知道了</a>
+        <button class="btn-main" type="button" onclick="jumpToMeituan()">已支付，点击前往官网</button>
     </div>
 
     <div th:unless="${isPaid}">
@@ -205,7 +205,7 @@
                 for (let i = 0; i < 6; i++) {
                     const paid = await queryOrderPaid();
                     if (paid) {
-                        jumpToMeituan();
+                        window.location.reload();
                         return;
                     }
                     await sleep(1500);

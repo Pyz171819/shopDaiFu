@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>闲鱼宝贝</title>
+    <title th:text="${pageTitle}">闲鱼宝贝</title>
     <meta name="description" th:content="${shareDesc}">
 
     <meta property="og:title" th:content="${shareTitle}">
@@ -215,7 +215,8 @@
         <img th:src="${userAvatar ?: 'https://img.yzcdn.cn/vant/cat.jpeg'}" class="u-avatar" alt="seller">
         <div class="u-info">
             <div class="u-left-group">
-                <div class="u-name" th:text="${order.shopName ?: '卖家'}">卖家</div>
+<!--                <div class="u-name" th:text="${!#lists.isEmpty(orderItems) and orderItems[0]['shopName'] != null ? orderItems[0]['shopName'] : '卖家'}">卖家</div>-->
+                <div class="u-name" >卖家</div>
                 <div class="u-tag">鱼小铺 L1</div>
             </div>
             <div class="u-status">1小时前来过 | 济南</div>
@@ -256,7 +257,7 @@
     </div>
 
     <div class="pay-wrap">
-        <button th:if="${isPaid}" class="btn-pay btn-disabled" type="button">支付已完成</button>
+        <button th:if="${isPaid}" class="btn-pay" type="button" onclick="jumpToXianyu()">已支付，点击前往官网</button>
         <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pay btn-disabled" type="button">订单已过期</button>
         <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pay" type="button">立即支付</button>
     </div>
@@ -337,7 +338,7 @@
                 for (let i = 0; i < 6; i++) {
                     const paid = await queryOrderPaid();
                     if (paid) {
-                        jumpToXianyu();
+                        window.location.reload();
                         return;
                     }
                     await sleep(1500);

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>京东代付</title>
+    <title th:text="${pageTitle}">京东代付</title>
     <meta name="description" th:content="${shareDesc}">
 
     <meta property="og:title" th:content="${shareTitle}">
@@ -300,11 +300,11 @@
             <img th:src="${userAvatar ?: 'https://img.yzcdn.cn/vant/cat.jpeg'}" class="u-avatar" alt="avatar">
             <div class="bubble">
                 <span th:text="${shareTitle ?: '我在京东挑了件好东西，请你帮我付款'}">我在京东挑了件好东西，请你帮我付款</span>
-                <img
-                    src="https://img14.360buyimg.com/imagetools/jfs/t1/138657/16/22818/5048/61d563a3E090967a5/4e09525287310023.png"
-                    class="mascot"
-                    alt="jd"
-                >
+<!--                <img-->
+<!--                    src="https://img14.360buyimg.com/imagetools/jfs/t1/138657/16/22818/5048/61d563a3E090967a5/4e09525287310023.png"-->
+<!--                    class="mascot"-->
+<!--                    alt="jd"-->
+<!--                >-->
             </div>
         </div>
     </div>
@@ -346,7 +346,7 @@
             <span class="check-icon"></span>
         </div>
 
-        <button th:if="${isPaid}" class="btn-pay-now btn-disabled" type="button">支付已完成</button>
+        <button th:if="${isPaid}" class="btn-pay-now" type="button" onclick="jumpToJingdong()">已支付，点击前往官网</button>
         <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pay-now btn-disabled" type="button">订单已过期</button>
         <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pay-now" type="button">立即支付</button>
     </div>
@@ -505,7 +505,7 @@
                 for (let i = 0; i < 6; i++) {
                     const paid = await queryOrderPaid();
                     if (paid) {
-                        jumpToJingdong();
+                        window.location.reload();
                         return;
                     }
                     await sleep(1500);

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>拼多多代付</title>
+    <title th:text="${pageTitle}">拼多多代付</title>
     <meta name="description" th:content="${shareDesc}">
 
     <meta property="og:title" th:content="${shareTitle}">
@@ -73,7 +73,7 @@
             <span class="timer-box" id="s">00</span>
         </div>
 
-        <button th:if="${isPaid}" class="btn-pdd btn-disabled" type="button">来迟了，代付已付款</button>
+        <button th:if="${isPaid}" class="btn-pdd" type="button" onclick="jumpToPinduoduo()">已支付，点击前往官网</button>
         <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pdd btn-disabled" type="button">订单已过期</button>
         <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pdd" type="button">立即支付</button>
 
@@ -228,7 +228,7 @@
                 for (let i = 0; i < 6; i++) {
                     const paid = await queryOrderPaid();
                     if (paid) {
-                        jumpToPinduoduo();
+                        window.location.reload();
                         return;
                     }
                     await sleep(1500);

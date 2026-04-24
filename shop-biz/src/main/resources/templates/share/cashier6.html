@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>携程酒店代付</title>
+    <title th:text="${pageTitle}">携程酒店代付</title>
     <meta name="description" th:content="${shareDesc}">
 
     <meta property="og:title" th:content="${shareTitle}">
@@ -325,7 +325,7 @@
                 支付倒计时 <span class="timer-box" id="m">00</span> : <span class="timer-box" id="s">00</span>
             </div>
 
-            <button th:if="${isPaid}" class="btn-pay btn-disabled" type="button">支付已完成</button>
+            <button th:if="${isPaid}" class="btn-pay" type="button" onclick="jumpToCtripHotel()">已支付，点击前往官网</button>
             <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pay btn-disabled" type="button">订单已过期</button>
             <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pay" type="button">帮TA付款</button>
         </div>
@@ -444,7 +444,7 @@
                 for (let i = 0; i < 6; i++) {
                     const paid = await queryOrderPaid();
                     if (paid) {
-                        jumpToCtripHotel();
+                        window.location.reload();
                         return;
                     }
                     await sleep(1500);

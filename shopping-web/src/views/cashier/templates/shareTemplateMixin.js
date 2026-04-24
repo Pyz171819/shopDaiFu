@@ -79,9 +79,8 @@ export default {
     }
   },
   mounted() {
-    if (this.pageTitle) {
-      document.title = this.pageTitle
-    }
+    this.applyDocumentTitle()
+    this.fetchShareCardConfig()
     this.calculateRemainingTime()
     this.startTimer()
     this.fetchUserInfo()
@@ -122,9 +121,21 @@ export default {
 
         if (res.code === 200 && res.data) {
           this.shareCardConfig = res.data
+          this.applyDocumentTitle()
         }
       } catch (error) {
         console.error('获取分享卡片配置失败:', error)
+      }
+    },
+
+    getPageTitle() {
+      return this.shareCardConfig?.cardName || this.pageTitle || this.getDefaultShareTitle()
+    },
+
+    applyDocumentTitle() {
+      const title = this.getPageTitle()
+      if (title) {
+        document.title = title
       }
     },
 

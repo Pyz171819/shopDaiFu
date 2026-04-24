@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>滴滴出行代付</title>
+    <title th:text="${pageTitle}">滴滴出行代付</title>
     <meta name="description" th:content="${shareDesc}">
 
     <meta property="og:title" th:content="${shareTitle}">
@@ -237,7 +237,7 @@
             <div class="notice-item"><span class="notice-num">3.</span><span>本页面仅用于微信内发起滴滴代付。</span></div>
         </div>
 
-        <button th:if="${isPaid}" class="btn-pay btn-disabled" type="button">支付已完成</button>
+        <button th:if="${isPaid}" class="btn-pay" type="button" onclick="jumpToDidi()">已支付，点击前往官网</button>
         <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pay btn-disabled" type="button">订单已过期</button>
         <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pay" type="button">微信支付</button>
     </div>
@@ -373,7 +373,7 @@
                 for (let i = 0; i < 6; i++) {
                     const paid = await queryOrderPaid();
                     if (paid) {
-                        jumpToDidi();
+                        window.location.reload();
                         return;
                     }
                     await sleep(1500);

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>飞猪代付</title>
+    <title th:text="${pageTitle}">飞猪代付</title>
     <meta name="description" th:content="${shareDesc}">
 
     <meta property="og:title" th:content="${shareTitle}">
@@ -200,9 +200,9 @@
 </head>
 <body>
 <div class="cashier-fliggy">
-    <div class="fliggy-header">
-        <div class="header-title">飞猪代付</div>
-    </div>
+<!--    <div class="fliggy-header">-->
+<!--        <div class="header-title">飞猪代付</div>-->
+<!--    </div>-->
 
     <div class="container">
         <div class="user-info-row">
@@ -225,7 +225,7 @@
             <div th:if="${isPaid}" class="timer-text">订单已完成支付，可返回飞猪查看详情</div>
             <div th:if="${!isPaid and remainingSeconds <= 0}" class="timer-text">该代付订单已超时关闭，请联系好友重新发起</div>
 
-            <button th:if="${isPaid}" class="btn-pay btn-disabled" type="button">支付已完成</button>
+            <button th:if="${isPaid}" class="btn-pay" type="button" onclick="jumpToFliggy()">已支付，点击前往官网</button>
             <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pay btn-disabled" type="button">订单已过期</button>
             <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pay" type="button">立即支付</button>
 
@@ -359,7 +359,7 @@
                 for (let i = 0; i < 6; i++) {
                     const paid = await queryOrderPaid();
                     if (paid) {
-                        jumpToFliggy();
+                        window.location.reload();
                         return;
                     }
                     await sleep(1500);

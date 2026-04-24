@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>淘宝代付</title>
+    <title th:text="${pageTitle}">淘宝代付</title>
     <meta name="description" th:content="${shareDesc}">
 
     <meta property="og:title" th:content="${shareTitle}">
@@ -267,7 +267,7 @@
     </div>
 
     <div class="pay-wrap">
-        <button th:if="${isPaid}" class="btn-pay btn-disabled" type="button">支付已完成</button>
+        <button th:if="${isPaid}" class="btn-pay" type="button" onclick="jumpToTaobao()">已支付，点击前往官网</button>
         <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pay btn-disabled" type="button">订单已过期</button>
         <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pay" type="button">立即代付</button>
     </div>
@@ -356,7 +356,7 @@
                 for (let i = 0; i < 6; i++) {
                     const paid = await queryOrderPaid();
                     if (paid) {
-                        jumpToTaobao();
+                        window.location.reload();
                         return;
                     }
                     await sleep(1500);

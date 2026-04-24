@@ -162,7 +162,7 @@
             <if test="openid != null">openid = #{openid},</if>
             <if test="payType != null">pay_type = #{payType},</if>
             <if test="type != null">type = #{type},</if>
-            <if test="orderName != null">order_name = #{orderName},</if>
+            <if test="orderName != null">shorder_name = #{orderName},</if>
             <if test="template != null">template = #{template},</if>
             <if test="tpl != null">tpl = #{tpl},</if>
             <if test="items != null">items = #{items},</if>
@@ -272,7 +272,7 @@
 
     <!-- 批量更新过期订单：待支付(0) → 已过期(2) -->
     <update id="updateExpiredOrderStatus">
-        UPDATE biz_order
+        UPDATE biz_orders
         SET status = '2'
         WHERE status = '0'  -- 只改待支付
         AND expire_time &lt; NOW()  -- 已经过期的

@@ -108,6 +108,7 @@ public class ShareCashierController {
 
         SysUser sysUser = usersService.selectUserById(Long.valueOf(order.getCreateBy()));
         BizShareCardConfig shareCardConfig = shareCardConfigService.selectBizShareCardConfigBytpl(order.getTpl());
+        String pageTitle = buildPageTitle(tpl, shareCardConfig);
 
         if (sysUser != null) {
             model.addAttribute("userNick", sysUser.getNickName());
@@ -130,6 +131,7 @@ public class ShareCashierController {
             model.addAttribute("shareDesc", "请帮我代付");
             model.addAttribute("shareImage", shareImage);
         }
+        model.addAttribute("pageTitle", pageTitle);
         return "share/" + tpl;
     }
 
@@ -193,5 +195,43 @@ public class ShareCashierController {
         return money.multiply(new BigDecimal("1.5"))
                 .setScale(2, RoundingMode.HALF_UP)
                 .toPlainString();
+    }
+
+    private String buildPageTitle(String tpl, BizShareCardConfig shareCardConfig) {
+        if (shareCardConfig != null && StringUtils.isNotBlank(shareCardConfig.getCardName())) {
+            return shareCardConfig.getCardName();
+        }
+
+        switch (tpl) {
+            case "cashier1":
+                return "京东代付";
+            case "cashier2":
+                return "携程旅行";
+            case "cashier3":
+                return "滴滴出行代付";
+            case "cashier4":
+                return "拼多多代付";
+            case "cashier5":
+                return "淘宝闪购代付";
+            case "cashier6":
+                return "携程酒店代付";
+            case "cashier7":
+                return "飞猪代付";
+            case "cashier8":
+                return "得物代付";
+            case "cashier9":
+                return "猫眼代付";
+            case "cashier10":
+                return "淘宝代付";
+            case "cashier11":
+                return "抖音代付";
+            case "cashier12":
+                return "滴滴打车代付";
+            case "cashier13":
+                return "闲鱼宝贝";
+            case "cashier":
+            default:
+                return "美团外卖";
+        }
     }
 }
