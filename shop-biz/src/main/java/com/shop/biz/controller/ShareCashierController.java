@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shop.biz.domain.BizOrder;
 import com.shop.biz.domain.BizShareCardConfig;
+import com.shop.biz.service.IBizConfigService;
 import com.shop.biz.service.IBizOrderService;
 import com.shop.biz.service.IBizShareCardConfigService;
 import com.shop.common.core.domain.entity.SysUser;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -28,7 +30,6 @@ import java.util.Map;
 public class ShareCashierController {
 
     private static final String CURRENT_WECHAT_OPENID = "CURRENT_WECHAT_OPENID";
-    private static final String BASE_URL = "https://dfsccsxt.meituandaif.cn";
 
     @Autowired
     private IBizOrderService bizOrderService;
@@ -39,18 +40,25 @@ public class ShareCashierController {
     @Autowired
     private IBizShareCardConfigService shareCardConfigService;
 
+    @Autowired
+    private IBizConfigService bizConfigService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+
+
 
     @GetMapping("/share/cashier")
     public String shareCashier(@RequestParam("outTradeNo") String outTradeNo,
                                @RequestParam(value = "from", required = false) String from,
                                HttpServletRequest request,
                                Model model) {
+        String baseUrl = getBaseUrl();
 
         Object currentOpenId = request.getSession().getAttribute(CURRENT_WECHAT_OPENID);
 
         if (isWechatBrowser(request) && currentOpenId == null) {
-            String currentUrl = BASE_URL + "/share/cashier?outTradeNo="
+            String currentUrl = baseUrl + "/share/cashier?outTradeNo="
                     + URLEncoder.encode(outTradeNo, StandardCharsets.UTF_8)
                     + "&from=" + URLEncoder.encode(StringUtils.defaultString(from, "share"), StandardCharsets.UTF_8);
 
@@ -82,16 +90,18 @@ public class ShareCashierController {
             remainingSeconds = Math.max(0L, (expireTimestamp - System.currentTimeMillis()) / 1000);
         }
 
-        String shareUrl = BASE_URL + "/share/cashier?outTradeNo="
+        String shareUrl = baseUrl + "/share/cashier?outTradeNo="
                 + URLEncoder.encode(outTradeNo, StandardCharsets.UTF_8) + "&from=share";
 
-        String shareImage = buildShareImage(BASE_URL, orderItems);
+        String shareImage = buildShareImage(baseUrl, orderItems);
+        String originalPrice = buildOriginalPrice(order.getMoney());
 
         model.addAttribute("order", order);
         model.addAttribute("orderItems", orderItems);
         model.addAttribute("isPaid", isPaid);
         model.addAttribute("remainingSeconds", remainingSeconds);
         model.addAttribute("expireTimestamp", expireTimestamp);
+        model.addAttribute("originalPrice", originalPrice);
         model.addAttribute("shareUrl", shareUrl);
         model.addAttribute("from", StringUtils.defaultString(from));
         model.addAttribute("tpl", tpl);
@@ -101,7 +111,7 @@ public class ShareCashierController {
 
         if (sysUser != null) {
             model.addAttribute("userNick", sysUser.getNickName());
-            model.addAttribute("userAvatar", BASE_URL + "/api" + sysUser.getAvatar());
+            model.addAttribute("userAvatar", baseUrl + "/api" + sysUser.getAvatar());
         }
         if (shareCardConfig != null) {
             model.addAttribute("userSlogan", shareCardConfig.getShareDesc());
@@ -111,7 +121,7 @@ public class ShareCashierController {
             if ("1".equals(shareCardConfig.getUseProductImage())) {
                 model.addAttribute("shareImage", shareImage);
             } else {
-                model.addAttribute("shareImage", BASE_URL + "/api" + shareCardConfig.getShareImage());
+                model.addAttribute("shareImage", baseUrl + "/api" + shareCardConfig.getShareImage());
             }
         } else {
             // 兜底，避免空指针
@@ -126,6 +136,14 @@ public class ShareCashierController {
     private boolean isWechatBrowser(HttpServletRequest request) {
         String ua = request.getHeader("User-Agent");
         return StringUtils.isNotBlank(ua) && ua.toLowerCase().contains("micromessenger");
+    }
+
+    private String getBaseUrl() {
+        String baseUrl = StringUtils.trimToEmpty(bizConfigService.selectConfigByKey("h5_base_url"));
+        if (StringUtils.isBlank(baseUrl)) {
+            throw new ServiceException("未配置 h5_base_url");
+        }
+        return StringUtils.removeEnd(baseUrl, "/");
     }
 
     private String buildCurrentUrl(HttpServletRequest request) {
@@ -166,5 +184,14 @@ public class ShareCashierController {
 
     private String formatMoney(BigDecimal money) {
         return money == null ? "0.00" : money.stripTrailingZeros().toPlainString();
+    }
+
+    private String buildOriginalPrice(BigDecimal money) {
+        if (money == null) {
+            return "0.00";
+        }
+        return money.multiply(new BigDecimal("1.5"))
+                .setScale(2, RoundingMode.HALF_UP)
+                .toPlainString();
     }
 }

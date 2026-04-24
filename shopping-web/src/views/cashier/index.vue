@@ -17,13 +17,35 @@ import { getOrderDetail } from '@/api/order'
 import CashierMeituan from './templates/CashierMeituan.vue'
 import CashierCtrip from './templates/CashierCtrip.vue'
 import CashierPinduoduo from './templates/CashierPinduoduo.vue'
+import CashierDouyin from './templates/CashierDouyin.vue'
+import CashierDidi from './templates/CashierDidi.vue'
+import CashierXianyu from './templates/CashierXianyu.vue'
+import CashierMaoyan from './templates/CashierMaoyan.vue'
+import CashierTaobao from './templates/CashierTaobao.vue'
+import CashierJingdong from './templates/CashierJingdong.vue'
+import CashierDidiSimple from './templates/CashierDidiSimple.vue'
+import CashierTaobaoQuick from './templates/CashierTaobaoQuick.vue'
+import CashierCtripHotel from './templates/CashierCtripHotel.vue'
+import CashierFliggy from './templates/CashierFliggy.vue'
+import CashierDewu from './templates/CashierDewu.vue'
 
 export default {
   name: 'CashierPage',
   components: {
     CashierMeituan,
     CashierCtrip,
-    CashierPinduoduo
+    CashierPinduoduo,
+    CashierDouyin,
+    CashierDidi,
+    CashierXianyu,
+    CashierMaoyan,
+    CashierTaobao,
+    CashierJingdong,
+    CashierDidiSimple,
+    CashierTaobaoQuick,
+    CashierCtripHotel,
+    CashierFliggy,
+    CashierDewu
   },
   data() {
     return {
@@ -59,8 +81,19 @@ export default {
 
         const tplMap = {
           cashier: 'CashierMeituan',
+          cashier1: 'CashierJingdong',
           cashier2: 'CashierCtrip',
-          cashier4: 'CashierPinduoduo'
+          cashier3: 'CashierDidiSimple',
+          cashier4: 'CashierPinduoduo',
+          cashier5: 'CashierTaobaoQuick',
+          cashier6: 'CashierCtripHotel',
+          cashier7: 'CashierFliggy',
+          cashier8: 'CashierDewu',
+          cashier9: 'CashierMaoyan',
+          cashier10: 'CashierTaobao',
+          cashier11: 'CashierDouyin',
+          cashier12: 'CashierDidi',
+          cashier13: 'CashierXianyu'
         }
 
         this.currentTemplate = tplMap[order.tpl] || 'CashierMeituan'

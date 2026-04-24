@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <title>滴滴出行代付</title>
+    <meta name="description" th:content="${shareDesc}">
+
+    <meta property="og:title" th:content="${shareTitle}">
+    <meta property="og:description" th:content="${shareDesc}">
+    <meta property="og:image" th:content="${shareImage}">
+    <meta property="og:url" th:content="${shareUrl}">
+    <meta property="og:type" content="website">
+
+    <link rel="canonical" th:href="${shareUrl}">
+
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0;
+            background: #f3f4f5;
+            color: #222;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+        }
+        .cashier-didi {
+            min-height: 100vh;
+            padding: 12px 0 28px;
+            background:
+                linear-gradient(180deg, #ffffff 0, #ffffff 72px, #f3f4f5 73px),
+                linear-gradient(180deg, #2cc379 0, #22a862 220px, #f3f4f5 221px);
+        }
+        .didi-header {
+            padding: 12px 18px 18px;
+            color: #111;
+            text-align: center;
+            font-size: 17px;
+            font-weight: 500;
+        }
+        .didi-header span {
+            display: block;
+            margin-top: 4px;
+            color: #8c8c8c;
+            font-size: 12px;
+            font-weight: 400;
+        }
+        .main-card {
+            margin: 0 12px;
+            padding: 34px 20px 24px;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,.03);
+            text-align: center;
+        }
+        .pay-label {
+            margin-bottom: 14px;
+            color: #333;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .pay-label.muted {
+            color: #999;
+        }
+        .pay-price {
+            margin-bottom: 16px;
+            color: #000;
+            font-family: Arial, sans-serif;
+            font-size: 42px;
+            font-weight: 500;
+            letter-spacing: -.5px;
+        }
+        .pay-price::before {
+            content: "¥";
+            margin-right: 2px;
+            font-size: 24px;
+            font-weight: 500;
+        }
+        .timer-line {
+            margin-bottom: 24px;
+            color: #666;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+        .timer-num {
+            color: #29c378;
+            font-weight: 700;
+        }
+        .notice-box {
+            margin-bottom: 24px;
+            padding: 18px 16px;
+            border-radius: 10px;
+            background: #f7f8fa;
+            text-align: left;
+        }
+        .notice-title {
+            margin-bottom: 10px;
+            color: #999;
+            font-size: 14px;
+            font-weight: 400;
+        }
+        .notice-item {
+            display: flex;
+            margin-bottom: 8px;
+            color: #777;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .notice-item:last-child {
+            margin-bottom: 0;
+        }
+        .notice-num {
+            flex-shrink: 0;
+            margin-right: 4px;
+        }
+        .btn-pay {
+            display: block;
+            width: 100%;
+            height: 46px;
+            border: none;
+            border-radius: 23px;
+            background: #29c378;
+            box-shadow: 0 4px 12px rgba(41,195,120,.22);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-pay.btn-disabled {
+            background: #cfcfcf;
+            box-shadow: none;
+            pointer-events: none;
+        }
+        .order-card {
+            margin: 12px;
+            padding: 18px 16px;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,.03);
+        }
+        .order-title {
+            margin-bottom: 14px;
+            color: #333;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .order-route {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #f8fffb 0, #f3faf6 100%);
+            color: #333;
+            font-size: 13px;
+        }
+        .route-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .route-money {
+            color: #29c378;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .detail-list {
+            margin-top: 14px;
+            padding: 0;
+            list-style: none;
+        }
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px dashed #f0f0f0;
+            color: #666;
+            font-size: 13px;
+        }
+        .detail-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .detail-label {
+            color: #999;
+        }
+        .detail-value {
+            max-width: 65%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: right;
+        }
+        .footer-info {
+            margin-top: 20px;
+            color: #bfbfbf;
+            text-align: center;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="cashier-didi">
+    <div class="didi-header">
+        滴滴代付
+        <span>安全快捷的代付请求</span>
+    </div>
+
+    <div class="main-card">
+        <div class="pay-label" th:classappend="${isPaid or remainingSeconds <= 0} ? ' muted' : ''">
+            <span th:if="${isPaid}">支付已完成</span>
+            <span th:if="${!isPaid and remainingSeconds <= 0}">订单已失效</span>
+            <span th:if="${!isPaid and remainingSeconds > 0}">待支付车费</span>
+        </div>
+
+        <div class="pay-price" th:text="${order.money}">0.00</div>
+
+        <div class="timer-line" th:if="${!isPaid and remainingSeconds > 0}">
+            请在
+            <span class="timer-num" id="m">00</span> :
+            <span class="timer-num" id="s">00</span>
+            内完成支付，超时后订单将自动关闭
+        </div>
+        <div class="timer-line" th:if="${isPaid}">
+            当前行程代付已完成，可返回滴滴查看订单状态
+        </div>
+        <div class="timer-line" th:if="${!isPaid and remainingSeconds <= 0}">
+            当前代付订单已超时关闭，请联系好友重新发起
+        </div>
+
+        <div class="notice-box">
+            <div class="notice-title">请您知悉</div>
+            <div class="notice-item"><span class="notice-num">1.</span><span>付款前请务必确认好友身份，避免误付或诈骗。</span></div>
+            <div class="notice-item"><span class="notice-num">2.</span><span>如行程取消，款项将原路退回到付款账户。</span></div>
+            <div class="notice-item"><span class="notice-num">3.</span><span>本页面仅用于微信内发起滴滴代付。</span></div>
+        </div>
+
+        <button th:if="${isPaid}" class="btn-pay btn-disabled" type="button">支付已完成</button>
+        <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pay btn-disabled" type="button">订单已过期</button>
+        <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pay" type="button">微信支付</button>
+    </div>
+
+    <div class="order-card">
+        <div class="order-title">行程信息</div>
+        <div class="order-route">
+            <span class="route-name" th:text="${order.orderName ?: '滴滴出行订单'}">滴滴出行订单</span>
+            <span class="route-money">¥<span th:text="${order.money}">0.00</span></span>
+        </div>
+        <ul class="detail-list">
+            <li class="detail-item">
+                <span class="detail-label">订单编号</span>
+                <span class="detail-value" th:text="${order.outTradeNo}">202600000000</span>
+            </li>
+            <li class="detail-item">
+                <span class="detail-label">发起人</span>
+                <span class="detail-value" th:text="${userNick ?: '滴滴用户'}">滴滴用户</span>
+            </li>
+            <li class="detail-item">
+                <span class="detail-label">支付方式</span>
+                <span class="detail-value">微信支付</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="footer-info">滴滴出行 · 让每一次出发更安心</div>
+</div>
+
+<script src="https://res2.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+<script th:inline="javascript">
+    const outTradeNo = [[${order.outTradeNo}]];
+    const expireTimestamp = [[${expireTimestamp}]];
+    let paySubmitting = false;
+    let timerId = null;
+
+    function getRemainSeconds() {
+        if (!expireTimestamp) {
+            return 0;
+        }
+        const diff = expireTimestamp - Date.now();
+        if (diff <= 0) {
+            return 0;
+        }
+        return Math.ceil(diff / 1000);
+    }
+
+    function isWechat() {
+        return /micromessenger/i.test(window.navigator.userAgent);
+    }
+
+    function getPayBtn() {
+        return document.getElementById('friendPayBtn');
+    }
+
+    function setPayBtnState(disabled, text) {
+        const btn = getPayBtn();
+        if (!btn) return;
+
+        btn.disabled = disabled;
+
+        if (disabled) {
+            btn.classList.add('btn-disabled');
+        } else {
+            btn.classList.remove('btn-disabled');
+        }
+
+        if (text) {
+            btn.innerText = text;
+        }
+    }
+
+    function jumpToDidi() {
+        window.location.href = 'https://www.didiglobal.com';
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function queryOrderPaid() {
+        const resp = await fetch('/api/biz/order/query?outTradeNo=' + encodeURIComponent(outTradeNo), {
+            method: 'GET',
+            credentials: 'same-origin'
+        });
+
+        const res = await resp.json();
+
+        if (!res || res.code !== 200 || !res.data) {
+            return false;
+        }
+
+        const order = res.data;
+        return order.status === '1' || order.status === 1;
+    }
+
+    function updateTimer() {
+        const mEl = document.getElementById('m');
+        const sEl = document.getElementById('s');
+        const remain = getRemainSeconds();
+
+        if (remain <= 0) {
+            if (mEl) mEl.innerText = '00';
+            if (sEl) sEl.innerText = '00';
+            setPayBtnState(true, '订单已过期');
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            return;
+        }
+
+        const m = Math.floor(remain / 60);
+        const s = remain % 60;
+
+        if (mEl) {
+            mEl.innerText = m < 10 ? '0' + m : '' + m;
+        }
+        if (sEl) {
+            sEl.innerText = s < 10 ? '0' + s : '' + s;
+        }
+
+        if (!paySubmitting) {
+            setPayBtnState(false, '微信支付');
+        }
+    }
+
+    function invokeJsapiPay(payParams) {
+        async function handlePaySuccess() {
+            try {
+                setPayBtnState(true, '正在确认支付结果...');
+
+                for (let i = 0; i < 6; i++) {
+                    const paid = await queryOrderPaid();
+                    if (paid) {
+                        jumpToDidi();
+                        return;
+                    }
+                    await sleep(1500);
+                }
+
+                window.location.reload();
+            } catch (e) {
+                console.error('查单失败', e);
+                window.location.reload();
+            }
+        }
+
+        function onBridgeReady() {
+            WeixinJSBridge.invoke(
+                'getBrandWCPayRequest',
+                {
+                    appId: payParams.appId,
+                    timeStamp: payParams.timeStamp,
+                    nonceStr: payParams.nonceStr,
+                    package: payParams.packageValue || payParams.package,
+                    signType: payParams.signType || 'MD5',
+                    paySign: payParams.paySign
+                },
+                async function (res) {
+                    paySubmitting = false;
+
+                    if (res.err_msg === 'get_brand_wcpay_request:ok') {
+                        await handlePaySuccess();
+                        return;
+                    }
+
+                    if (getRemainSeconds() > 0) {
+                        setPayBtnState(false, '微信支付');
+                    } else {
+                        setPayBtnState(true, '订单已过期');
+                    }
+
+                    if (res.err_msg !== 'get_brand_wcpay_request:cancel') {
+                        alert('支付未完成：' + res.err_msg);
+                    }
+                }
+            );
+        }
+
+        if (typeof WeixinJSBridge === 'undefined') {
+            document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
+        } else {
+            onBridgeReady();
+        }
+    }
+
+    async function submitFriendPay() {
+        if (paySubmitting) {
+            return;
+        }
+        if (getRemainSeconds() <= 0) {
+            setPayBtnState(true, '订单已过期');
+            return;
+        }
+
+        if (!isWechat()) {
+            alert('请在微信内打开页面完成支付');
+            return;
+        }
+
+        paySubmitting = true;
+        setPayBtnState(true, '正在调起支付...');
+
+        try {
+            const resp = await fetch('/api/biz/order/pay', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    tradeNo: outTradeNo
+                })
+            });
+            const res = await resp.json();
+
+            if (!res || res.code !== 200 || !res.data || !res.data.payParams) {
+                paySubmitting = false;
+
+                if (getRemainSeconds() > 0) {
+                    setPayBtnState(false, '微信支付');
+                } else {
+                    setPayBtnState(true, '订单已过期');
+                }
+                alert((res && res.msg) || '发起支付失败');
+                return;
+            }
+
+            invokeJsapiPay(res.data.payParams);
+        } catch (e) {
+            paySubmitting = false;
+            if (getRemainSeconds() > 0) {
+                setPayBtnState(false, '微信支付');
+            } else {
+                setPayBtnState(true, '订单已过期');
+            }
+            alert('支付请求异常');
+            console.error(e);
+        }
+    }
+
+    const payBtn = getPayBtn();
+    if (payBtn) {
+        payBtn.addEventListener('click', submitFriendPay);
+    }
+
+    updateTimer();
+    timerId = setInterval(updateTimer, 1000);
+
+    async function initWechatShare() {
+        if (!isWechat()) {
+            return;
+        }
+
+        try {
+            const signUrl = window.location.href.split('#')[0];
+            const apiUrl = '/api/biz/wechat/jsapi/signature?url=' + encodeURIComponent(signUrl);
+
+            const resp = await fetch(apiUrl, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            const res = await resp.json();
+
+            if (!res || res.code !== 200 || !res.data) {
+                console.error('获取微信签名失败:', res);
+                return;
+            }
+
+            const config = res.data;
+
+            wx.config({
+                debug: false,
+                appId: config.appId,
+                timestamp: config.timestamp,
+                nonceStr: config.nonceStr,
+                signature: config.signature,
+                jsApiList: [
+                    'updateAppMessageShareData',
+                    'onMenuShareAppMessage'
+                ]
+            });
+
+            wx.ready(function () {
+                const shareData = {
+                    title: [[${shareTitle}]],
+                    desc: [[${shareDesc}]],
+                    link: [[${shareUrl}]],
+                    imgUrl: [[${shareImage}]]
+                };
+
+                if (typeof wx.onMenuShareAppMessage === 'function') {
+                    wx.onMenuShareAppMessage(shareData);
+                }
+
+                if (typeof wx.updateAppMessageShareData === 'function') {
+                    wx.updateAppMessageShareData(shareData);
+                }
+            });
+
+            wx.error(function (err) {
+                console.error('微信 JSSDK 配置失败:', err);
+            });
+        } catch (e) {
+            console.error('初始化微信分享失败', e);
+        }
+    }
+
+    initWechatShare();
+</script>
+</body>
+</html>
