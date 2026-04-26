@@ -24,7 +24,7 @@ public class BizConfigServiceImpl implements IBizConfigService {
             "site_notice",
             "show_notice",
             "show_slides",
-            "commission_rate",
+            "h5_base_url",
             "daifu_switch"
     ));
 

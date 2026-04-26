@@ -60,6 +60,12 @@
               <el-tag v-if="scope.row.bizUser.permAddProduct === '1'" type="success">可上架</el-tag>
             </template>
           </el-table-column>>
+<!--          展示余额-->
+          <el-table-column label="余额" align="center" key="balance" prop="balance" v-if="columns.nickName.visible" :show-overflow-tooltip="true" >
+            <template slot-scope="scope">
+              ¥{{ Number(scope.row.bizUser.balance || 0).toFixed(2) }}
+            </template>
+          </el-table-column>>
           <el-table-column
             label="数据统计"
             align="center"

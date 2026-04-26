@@ -106,13 +106,73 @@ public class BizOrderServiceImpl implements IBizOrderService {
      * @return 结果
      */
     @Override
+    @Transactional
     public int updateBizOrder(BizOrder bizOrder)
     {
         bizOrder.setUpdateBy(String.valueOf(SecurityUtils.getUserId()));
         bizOrder.setUpdateTime(DateUtils.getNowDate());
         //修改订单状态之前查询原订单信息
         BizOrder oldOrder = bizOrderMapper.selectBizOrderById2(bizOrder.getId());
-        //根据原订单信息修改订单状态的佣金逻辑
+        BizMoneyLog bizMoneyLog = new BizMoneyLog();
+        //根据原订单信息状态修改订单的佣金逻辑
+        //1、当前订单为待支付状态，修改为已支付(如改为已过期则直接该状态即可)
+        if (STATUS_UNPAID.equals(oldOrder.getStatus())) {
+            if (STATUS_PAID.equals(bizOrder.getStatus())) {
+                //获取订单创建人和订单金额
+                String createBy = oldOrder.getCreateBy();
+                BigDecimal orderMoney = oldOrder.getMoney();
+                //修改用户的balance
+                SysUser sysUser = sysUserService.selectUserById(Long.valueOf(createBy));
+                BigDecimal commission = oldOrder.getMoney().subtract(orderMoney.multiply(sysUser.getBizUser()
+                                                           .getCommissionRate())
+                                                           .divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP));
+                bizMoneyLog.setBeforeMoney(sysUser.getBizUser().getBalance());
+                sysUser.getBizUser().setBalance(sysUser.getBizUser().getBalance().add(commission));
+                bizMoneyLog.setAfterMoney(sysUser.getBizUser().getBalance());
+                sysUserService.updateUser(sysUser);
+                bizMoneyLog.setUserId(Long.valueOf(createBy));
+                bizMoneyLog.setMoney(commission);
+                bizMoneyLog.setType("待支付状态修改为已支付，增加佣金");
+                bizMoneyLog.setRemark("待支付状态修改为已支付，增加佣金");
+            }
+        }
+        //2、当前订单为已支付状态，修改为待支付或已过期，则需要修改退回用户的balance（订单金额 * 用户金额比例）
+        if (STATUS_PAID.equals(oldOrder.getStatus())) {
+            if (!STATUS_PAID.equals(bizOrder.getStatus())) {
+                SysUser sysUser = sysUserService.selectUserById(Long.valueOf(oldOrder.getCreateBy()));
+                BigDecimal commission = oldOrder.getMoney().subtract(oldOrder.getMoney()
+                        .multiply(sysUser.getBizUser().getCommissionRate())
+                        .divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP));
+                bizMoneyLog.setBeforeMoney(sysUser.getBizUser().getBalance());
+                sysUser.getBizUser().setBalance(sysUser.getBizUser().getBalance().subtract(commission));
+                bizMoneyLog.setAfterMoney(sysUser.getBizUser().getBalance());
+                sysUserService.updateUser(sysUser);
+                bizMoneyLog.setUserId(Long.valueOf(oldOrder.getCreateBy()));
+                bizMoneyLog.setMoney(commission);
+                bizMoneyLog.setType("已支付状态修改为待支付或已过期，减去佣金");
+                bizMoneyLog.setRemark("已支付状态修改为待支付或已过期，减去佣金");
+            }
+        }
+        //3、当前订单为已过期状态，修改为已支付，则需要修改增加用户的balance（订单金额 * 用户金额比例）
+        if ("2".equals(oldOrder.getStatus())) {
+            if (STATUS_PAID.equals(bizOrder.getStatus())) {
+                SysUser sysUser = sysUserService.selectUserById(Long.valueOf(oldOrder.getCreateBy()));
+                BigDecimal commission = oldOrder.getMoney().subtract(oldOrder.getMoney()
+                        .multiply(sysUser.getBizUser().getCommissionRate())
+                        .divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP));
+
+                bizMoneyLog.setBeforeMoney(sysUser.getBizUser().getBalance());
+                sysUser.getBizUser().setBalance(sysUser.getBizUser().getBalance().add(commission));
+                bizMoneyLog.setAfterMoney(sysUser.getBizUser().getBalance());
+                sysUserService.updateUser(sysUser);
+                bizMoneyLog.setUserId(Long.valueOf(oldOrder.getCreateBy()));
+                bizMoneyLog.setMoney(commission);
+                bizMoneyLog.setType("已支付状态修改为待支付或已过期，减去佣金");
+                bizMoneyLog.setRemark("已支付状态修改为待支付或已过期，减去佣金");
+            }
+        }
+        //增加资金操作记录
+        bizMoneyLogService.insertBizMoneyLog(bizMoneyLog);
         return bizOrderMapper.updateBizOrder2(bizOrder);
     }
 

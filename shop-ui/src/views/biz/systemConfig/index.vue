@@ -38,19 +38,29 @@
           />
         </el-form-item>
 
-        <el-form-item label="默认佣金比例">
-          <el-input-number
-            v-model="form.commissionRate"
-            :min="0"
-            :max="100"
-            :precision="2"
-            :step="1"
-            controls-position="right"
+<!--        配置h5_base_url-->
+        <el-form-item label="配置域名">
+          <el-input
+            v-model="form.h5BaseUrl"
+            placeholder="请输入配置域名"
+            maxlength="500"
+            show-word-limit
           />
-          <span class="form-tip">单位：%</span>
         </el-form-item>
 
-        <el-form-item label="代付开关">
+<!--        <el-form-item label="默认佣金比例">-->
+<!--          <el-input-number-->
+<!--            v-model="form.commissionRate"-->
+<!--            :min="0"-->
+<!--            :max="100"-->
+<!--            :precision="2"-->
+<!--            :step="1"-->
+<!--            controls-position="right"-->
+<!--          />-->
+<!--          <span class="form-tip">单位：%</span>-->
+<!--        </el-form-item>-->
+
+        <el-form-item label="开关（勿动）">
           <el-switch
             v-model="form.daifuSwitch"
             active-value="1"
@@ -86,6 +96,7 @@ export default {
         siteNotice: '',
         showNotice: '0',
         showSlides: '0',
+        h5BaseUrl: 'https://www.xxx.com',
         commissionRate: 10,
         daifuSwitch: '1'
       }
@@ -103,6 +114,7 @@ export default {
         this.form.siteNotice = data.site_notice || ''
         this.form.showNotice = data.show_notice || '0'
         this.form.showSlides = data.show_slides || '0'
+        this.form.h5BaseUrl = data.h5_base_url || 'https://www.xxx.com'
         this.form.commissionRate =
           data.commission_rate !== undefined && data.commission_rate !== ''
             ? Number(data.commission_rate)
@@ -113,17 +125,18 @@ export default {
       }
     },
     async handleSubmit() {
-      if (this.form.commissionRate < 0 || this.form.commissionRate > 100) {
-        this.$modal.msgError('默认佣金比例必须在 0-100 之间')
-        return
-      }
+      // if (this.form.commissionRate < 0 || this.form.commissionRate > 100) {
+      //   this.$modal.msgError('默认佣金比例必须在 0-100 之间')
+      //   return
+      // }
 
       const payload = {
         configs: {
           site_notice: this.form.siteNotice || '',
           show_notice: this.form.showNotice,
           show_slides: this.form.showSlides,
-          commission_rate: String(this.form.commissionRate),
+          h5_base_url: this.form.h5BaseUrl || 'https://www.xxx.com',
+          // commission_rate: String(this.form.commissionRate),
           daifu_switch: this.form.daifuSwitch
         }
       }
