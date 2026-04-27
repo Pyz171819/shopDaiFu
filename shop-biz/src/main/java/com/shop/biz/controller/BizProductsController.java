@@ -2,7 +2,6 @@ package com.shop.biz.controller;
 
 import java.util.List;
 
-import com.shop.biz.domain.BizCategories;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,9 +48,18 @@ public class BizProductsController extends BaseController
     }
 
     @GetMapping("/listAll")
-    public AjaxResult  listAll (Long categoryId)
+    public AjaxResult listAll(Long categoryId)
     {
         List<BizProducts> list = bizProductsService.selectBizProductsListByCategoriesId(categoryId);
+        return AjaxResult.success(list);
+    }
+
+    @GetMapping("/searchHome")
+    public AjaxResult searchHome(BizProducts bizProducts)
+    {
+        bizProducts.setAuditStatus("1");
+        bizProducts.setStatus("1");
+        List<BizProducts> list = bizProductsService.selectBizProductsList(bizProducts);
         return AjaxResult.success(list);
     }
 
@@ -71,7 +79,7 @@ public class BizProductsController extends BaseController
     /**
      * 获取商品详细信息
      */
-    @PreAuthorize("@ss.hasPermi('biz:products:query')")
+//    @PreAuthorize("@ss.hasPermi('biz:products:query')")
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id)
     {

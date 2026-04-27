@@ -18,3 +18,25 @@ export function listProductByCategory(categoryId) {
         }
     });
 }
+
+export function searchHomeProducts(params) {
+    return request({
+        url: "/biz/products/searchHome",
+        method: "get",
+        params
+    });
+}
+
+export function getHomeConfig() {
+    return request({
+        url: "/biz/config/common",
+        method: "get"
+    });
+}
+
+export function listHomeSlides() {
+    return request({
+        url: "/biz/slides/listAll",
+        method: "get"
+    });
+}

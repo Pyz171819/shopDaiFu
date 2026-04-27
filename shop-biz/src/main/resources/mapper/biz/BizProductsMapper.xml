@@ -74,7 +74,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectBizProductsById" parameterType="Long" resultMap="BizProductsResult">
         <include refid="selectBizProductsVo"/>
-        where bp.id = #{id}
+        where bp.id = #{id} and bp.del_flag = '1'
     </select>
 
     <insert id="insertBizProducts" parameterType="BizProducts" useGeneratedKeys="true" keyProperty="id">

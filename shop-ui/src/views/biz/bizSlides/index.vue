@@ -1,18 +1,10 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="模板标识" prop="tpl">
+      <el-form-item label="轮播图标题" prop="title" label-width="90px">
         <el-input
-          v-model="queryParams.tpl"
-          placeholder="请输入模板标识"
-          clearable
-          @keyup.enter.native="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="卡片名称" prop="cardName">
-        <el-input
-          v-model="queryParams.cardName"
-          placeholder="请输入卡片名称"
+          v-model="queryParams.title"
+          placeholder="请输入轮播图标题"
           clearable
           @keyup.enter.native="handleQuery"
         />
@@ -32,7 +24,7 @@
           icon="el-icon-plus"
           size="mini"
           @click="handleAdd"
-          v-hasPermi="['biz:bizShareCardConfig:add']"
+          v-hasPermi="['biz:bizSlides:add']"
         >新增</el-button>
       </el-col>
 <!--      <el-col :span="1.5">-->
@@ -43,7 +35,7 @@
 <!--          size="mini"-->
 <!--          :disabled="single"-->
 <!--          @click="handleUpdate"-->
-<!--          v-hasPermi="['biz:bizShareCardConfig:edit']"-->
+<!--          v-hasPermi="['biz:bizSlides:edit']"-->
 <!--        >修改</el-button>-->
 <!--      </el-col>-->
       <el-col :span="1.5">
@@ -54,7 +46,7 @@
           size="mini"
           :disabled="multiple"
           @click="handleDelete"
-          v-hasPermi="['biz:bizShareCardConfig:remove']"
+          v-hasPermi="['biz:bizSlides:remove']"
         >删除</el-button>
       </el-col>
 <!--      <el-col :span="1.5">-->
@@ -64,31 +56,29 @@
 <!--          icon="el-icon-download"-->
 <!--          size="mini"-->
 <!--          @click="handleExport"-->
-<!--          v-hasPermi="['biz:bizShareCardConfig:export']"-->
+<!--          v-hasPermi="['biz:bizSlides:export']"-->
 <!--        >导出</el-button>-->
 <!--      </el-col>-->
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="bizShareCardConfigList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="bizSlidesList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="模板标识" align="center" prop="tpl" />
-      <el-table-column label="卡片名称" align="center" prop="cardName" />
-      <el-table-column label="副标题/小字" align="center" prop="shareSubtitle" />
-      <el-table-column label="微信分享标题" align="center" prop="shareTitle" />
-      <el-table-column label="微信分享描述" align="center" prop="shareDesc" />
-      <el-table-column label="固定分享图" align="center" prop="shareImage" width="100">
+      <el-table-column label="轮播图标题" align="center" prop="title" />
+      <el-table-column label="轮播图图片" align="center" prop="img" width="100">
         <template slot-scope="scope">
-          <image-preview :src="scope.row.shareImage" :width="50" :height="50"/>
+          <image-preview :src="scope.row.img" :width="50" :height="50"/>
         </template>
       </el-table-column>
-      <el-table-column label="是否使用商品图" align="center" prop="useProductImage" >
+      <el-table-column label="跳转链接" align="center" prop="url" />
+      <el-table-column label="状态" align="center" prop="status" >
         <template slot-scope="scope">
-          <el-tag v-if="scope.row.useProductImage === '1'" type="success">是</el-tag>
-          <el-tag v-if="scope.row.useProductImage === '0'" type="danger">否</el-tag>
+          <el-tag v-if="scope.row.status === '1'" type="success">正常</el-tag>
+          <el-tag v-if="scope.row.status === '0'" type="danger">停用</el-tag>
         </template>
       </el-table-column>>
-      <el-table-column label="排序值，越大越靠前" align="center" prop="sort" />
+      <el-table-column label="排序值" align="center" prop="sort" />
+
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button
@@ -96,14 +86,14 @@
             type="text"
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
-            v-hasPermi="['biz:bizShareCardConfig:edit']"
+            v-hasPermi="['biz:bizSlides:edit']"
           >修改</el-button>
           <el-button
             size="mini"
             type="text"
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
-            v-hasPermi="['biz:bizShareCardConfig:remove']"
+            v-hasPermi="['biz:bizSlides:remove']"
           >删除</el-button>
         </template>
       </el-table-column>
@@ -117,51 +107,41 @@
       @pagination="getList"
     />
 
-    <!-- 添加或修改分享卡片配置对话框 -->
+    <!-- 添加或修改轮播图对话框 -->
     <el-dialog :title="title" :visible.sync="open" width="500px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="100px">
         <el-row>
           <el-col :span="24">
-            <el-form-item label="模板标识" prop="tpl">
-              <el-input v-model="form.tpl" placeholder="请输入模板标识" :disabled="title === '修改分享卡片配置'"/>
+            <el-form-item label="轮播图标题" prop="title">
+              <el-input v-model="form.title" placeholder="请输入轮播图标题" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="卡片名称" prop="cardName">
-              <el-input v-model="form.cardName" placeholder="请输入卡片名称" />
+            <el-form-item label="轮播图图片" prop="img">
+              <image-upload v-model="form.img" limit="1"/>
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="副标题/小字" prop="shareSubtitle">
-              <el-input v-model="form.shareSubtitle" placeholder="请输入副标题/小字" />
+            <el-form-item label="跳转链接" prop="url">
+              <el-input v-model="form.url" placeholder="请输入跳转链接" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="微信分享标题" prop="shareTitle">
-              <el-input v-model="form.shareTitle" placeholder="请输入微信分享标题" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="微信分享描述" prop="shareDesc">
-              <el-input v-model="form.shareDesc" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="固定分享图" prop="shareImage">
-              <image-upload v-model="form.shareImage" limit="1"/>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="是否使用商品图" prop="useProductImage" label-width="120px">
-              <el-radio-group v-model="form.useProductImage">
-                <el-radio label="1">是</el-radio>
-                <el-radio label="0">否</el-radio>
+            <el-form-item label="状态" prop="status">
+              <el-radio-group v-model="form.status">
+                <el-radio label="1">正常</el-radio>
+                <el-radio label="0">停用</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="排序值" prop="sort">
               <el-input v-model="form.sort" placeholder="请输入排序值，越大越靠前" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="备注" prop="remark">
+              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -175,10 +155,10 @@
 </template>
 
 <script>
-import { listBizShareCardConfig, getBizShareCardConfig, delBizShareCardConfig, addBizShareCardConfig, updateBizShareCardConfig } from "@/api/biz/bizShareCardConfig"
+import { listBizSlides, getBizSlides, delBizSlides, addBizSlides, updateBizSlides } from "@/api/biz/bizSlides"
 
 export default {
-  name: "BizShareCardConfig",
+  name: "BizSlides",
   data() {
     return {
       // 遮罩层
@@ -193,8 +173,8 @@ export default {
       showSearch: true,
       // 总条数
       total: 0,
-      // 分享卡片配置表格数据
-      bizShareCardConfigList: [],
+      // 轮播图表格数据
+      bizSlidesList: [],
       // 弹出层标题
       title: "",
       // 是否显示弹出层
@@ -203,13 +183,9 @@ export default {
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        tpl: null,
-        cardName: null,
-        shareSubtitle: null,
-        shareTitle: null,
-        shareDesc: null,
-        shareImage: null,
-        useProductImage: null,
+        title: null,
+        img: null,
+        url: null,
         sort: null,
         status: null,
       },
@@ -217,6 +193,19 @@ export default {
       form: {},
       // 表单校验
       rules: {
+        title: [
+          { required: true, message: "轮播图标题不能为空", trigger: "blur" }
+        ],
+        img: [
+          { required: true, message: "轮播图图片地址不能为空", trigger: "blur" }
+        ],
+        url: [
+          { required: true, message: "跳转链接不能为空", trigger: "blur" }
+        ],
+        sort: [
+          { required: true, message: "排序值不能为空", trigger: "blur" }
+        ],
+
       }
     }
   },
@@ -224,11 +213,11 @@ export default {
     this.getList()
   },
   methods: {
-    /** 查询分享卡片配置列表 */
+    /** 查询轮播图列表 */
     getList() {
       this.loading = true
-      listBizShareCardConfig(this.queryParams).then(response => {
-        this.bizShareCardConfigList = response.rows
+      listBizSlides(this.queryParams).then(response => {
+        this.bizSlidesList = response.rows
         this.total = response.total
         this.loading = false
       })
@@ -242,15 +231,12 @@ export default {
     reset() {
       this.form = {
         id: null,
-        tpl: null,
-        cardName: null,
-        shareSubtitle: null,
-        shareTitle: null,
-        shareDesc: null,
-        shareImage: null,
-        useProductImage: '1',
+        title: null,
+        img: null,
+        url: null,
         sort: null,
-        status: null,
+        status: '1',
+        remark: null,
         createBy: null,
         createTime: null,
         updateBy: null,
@@ -279,16 +265,16 @@ export default {
     handleAdd() {
       this.reset()
       this.open = true
-      this.title = "添加分享卡片配置"
+      this.title = "添加轮播图"
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
       this.reset()
       const id = row.id || this.ids
-      getBizShareCardConfig(id).then(response => {
+      getBizSlides(id).then(response => {
         this.form = response.data
         this.open = true
-        this.title = "修改分享卡片配置"
+        this.title = "修改轮播图"
       })
     },
     /** 提交按钮 */
@@ -296,13 +282,13 @@ export default {
       this.$refs["form"].validate(valid => {
         if (valid) {
           if (this.form.id != null) {
-            updateBizShareCardConfig(this.form).then(response => {
+            updateBizSlides(this.form).then(response => {
               this.$modal.msgSuccess("修改成功")
               this.open = false
               this.getList()
             })
           } else {
-            addBizShareCardConfig(this.form).then(response => {
+            addBizSlides(this.form).then(response => {
               this.$modal.msgSuccess("新增成功")
               this.open = false
               this.getList()
@@ -314,8 +300,8 @@ export default {
     /** 删除按钮操作 */
     handleDelete(row) {
       const ids = row.id || this.ids
-      this.$modal.confirm('是否确认删除此分享卡片配置数据项？').then(function() {
-        return delBizShareCardConfig(ids)
+      this.$modal.confirm('是否确认删除轮播图编号为"' + ids + '"的数据项？').then(function() {
+        return delBizSlides(ids)
       }).then(() => {
         this.getList()
         this.$modal.msgSuccess("删除成功")
@@ -323,9 +309,9 @@ export default {
     },
     /** 导出按钮操作 */
     handleExport() {
-      this.download('biz/bizShareCardConfig/export', {
+      this.download('biz/bizSlides/export', {
         ...this.queryParams
-      }, `bizShareCardConfig_${new Date().getTime()}.xlsx`)
+      }, `bizSlides_${new Date().getTime()}.xlsx`)
     }
   }
 }

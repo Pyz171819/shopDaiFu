@@ -4,10 +4,72 @@
       <header class="top-bar">
         <div class="search-bar">
           <span class="search-icon"></span>
-          <span class="search-placeholder">搜索商品名称...</span>
-          <button class="search-btn" type="button">搜索</button>
+          <input
+            v-model.trim="searchKeyword"
+            class="search-input"
+            type="text"
+            placeholder="搜索商品名称..."
+            @keyup.enter="handleSearch"
+            @input="handleSearchInput"
+          />
+          <button class="search-btn" type="button" @click="handleSearch">搜索</button>
         </div>
       </header>
+
+      <section v-if="showHeroArea" class="hero-stack">
+        <div
+          v-if="showSlidesSection"
+          class="hero-slider"
+          @mouseenter="stopSlideAutoplay"
+          @mouseleave="startSlideAutoplay"
+        >
+          <div class="slider-track" :style="sliderTrackStyle">
+            <div
+              v-for="slide in slides"
+              :key="slide.id"
+              class="slide-card"
+              role="button"
+              tabindex="0"
+              @click="handleSlideClick(slide)"
+              @keydown.enter.prevent="handleSlideClick(slide)"
+              @keydown.space.prevent="handleSlideClick(slide)"
+            >
+              <img
+                :src="getResourceUrl(slide.img)"
+                :alt="slide.title || '首页轮播图'"
+                class="slide-image"
+              />
+              <div class="slide-overlay">
+                <span class="slide-tag">精选推荐</span>
+                <strong class="slide-title">{{ slide.title || "新品上架" }}</strong>
+                <span class="slide-link">{{ slide.url ? "点击查看详情" : "首页活动展示" }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="slides.length > 1" class="slider-dots">
+            <button
+              v-for="(slide, index) in slides"
+              :key="slide.id"
+              :class="['slider-dot', { active: activeSlideIndex === index }]"
+              type="button"
+              @click="setActiveSlide(index)"
+            ></button>
+          </div>
+        </div>
+
+        <div v-if="showNoticeSection" class="notice-banner">
+          <span class="notice-badge">公告</span>
+          <div class="notice-marquee">
+            <div :class="['notice-track', { animated: shouldAnimateNotice }]" :style="noticeTrackStyle">
+              <span class="notice-text">{{ noticeText }}</span>
+              <span v-if="shouldAnimateNotice" class="notice-text clone" aria-hidden="true">
+                {{ noticeText }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <main class="content-area">
         <aside class="category-list">
@@ -22,33 +84,42 @@
           </button>
         </aside>
 
-        <section class="goods-list">
-          <article v-for="item in goods" :key="item.id" class="goods-card">
-            <div class="goods-cover">
-              <img
-                v-if="item.image"
-                :src="getGoodsImageUrl(item.image)"
-                alt="商品图片"
-                class="goods-cover-img"
-              />
-              <span v-else>{{ item.short }}</span>
-            </div>
-            <div class="goods-main">
-              <h3>{{ item.name }}</h3>
-              <strong>￥{{ formatPrice(item.price) }}</strong>
-            </div>
-            <div class="goods-actions">
-              <button class="buy-btn" type="button" @click="buyNow(item)">购买</button>
-              <button
-                :class="['plus-btn', { selected: item.quantity > 0 }]"
-                type="button"
-                @click="toggleQuantity(item)"
-              >
-                <span v-if="item.quantity > 0" class="quantity-pill">{{ item.quantity }}</span>
-                <span v-else class="plus-sign">+</span>
-              </button>
-            </div>
-          </article>
+        <section class="goods-panel">
+          <div v-if="goods.length" class="goods-list">
+            <article v-for="item in goods" :key="item.id" class="goods-card">
+              <div class="goods-cover">
+                <img
+                  v-if="item.image"
+                  :src="getResourceUrl(item.image)"
+                  alt="商品图片"
+                  class="goods-cover-img"
+                />
+                <span v-else>{{ item.short }}</span>
+              </div>
+
+              <div class="goods-main">
+                <h3>{{ item.name }}</h3>
+                <strong>¥{{ formatPrice(item.price) }}</strong>
+              </div>
+
+              <div class="goods-actions">
+                <button class="buy-btn" type="button" @click="buyNow(item)">购买</button>
+                <button
+                  :class="['plus-btn', { selected: item.quantity > 0 }]"
+                  type="button"
+                  @click="toggleQuantity(item)"
+                >
+                  <span v-if="item.quantity > 0" class="quantity-pill">{{ item.quantity }}</span>
+                  <span v-else class="plus-sign">+</span>
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <div v-else class="goods-empty">
+            <strong>当前没有可展示商品</strong>
+            <span>可以切换分类，或尝试重新搜索关键词。</span>
+          </div>
         </section>
       </main>
 
@@ -69,7 +140,7 @@
 
             <div class="shop-profile-meta">
               <span class="shop-profile-label">WELCOME</span>
-              <strong class="shop-profile-name">{{ userProfile.nickname }}</strong>
+              <strong class="shop-profile-name">{{ userProfile.nickname || "用户中心" }}</strong>
             </div>
           </div>
 
@@ -81,7 +152,7 @@
         <div class="cart-bar">
           <div class="cart-total">
             <span>合计</span>
-            <strong>{{ formatPrice(totalAmount) }}</strong>
+            <strong>¥{{ formatPrice(totalAmount) }}</strong>
             <em>({{ totalCount }})</em>
           </div>
           <div class="cart-actions">
@@ -95,8 +166,8 @@
 
       <div v-if="showClearConfirm" class="modal-mask" @click.self="showClearConfirm = false">
         <div class="confirm-modal">
-          <h3>确认清空商品？</h3>
-          <p>当前已选中的商品数量和金额会被重置，确认后不可恢复。</p>
+          <h3>确认清空购物车？</h3>
+          <p>已选商品数量和金额会被重置，确认后不可恢复。</p>
           <div class="confirm-actions">
             <button class="modal-btn secondary" type="button" @click="showClearConfirm = false">
               取消
@@ -109,7 +180,6 @@
   </div>
 </template>
 
-
 <script>
 import { getUserSimpleInfo } from "../../api/auth";
 import {
@@ -117,7 +187,13 @@ import {
   setHomeCartState,
   setPaymentSummary
 } from "../../utils/app-state";
-import { listCategory, listProductByCategory } from "../../api/home";
+import {
+  getHomeConfig,
+  listCategory,
+  listHomeSlides,
+  listProductByCategory,
+  searchHomeProducts
+} from "../../api/home";
 
 export default {
   name: "HomePage",
@@ -129,29 +205,62 @@ export default {
       avatarVersion: Date.now(),
       activeCategoryId: null,
       showClearConfirm: false,
+      searchKeyword: "",
       categories: [],
       goods: [],
+      slides: [],
+      activeSlideIndex: 0,
+      slideTimer: null,
+      slideAutoplayDelay: 3500,
+      homeConfig: {
+        siteNotice: "",
+        showNotice: "0",
+        showSlides: "0"
+      },
       cartItems: cartState.items,
       savedActiveCategoryId: cartState.activeCategoryId
     };
   },
   created() {
     this.fetchUserProfile();
+    this.loadHomeDecorations();
     this.getCategoryList();
   },
   activated() {
     this.fetchUserProfile();
+    this.startSlideAutoplay();
+  },
+  deactivated() {
+    this.stopSlideAutoplay();
+  },
+  beforeDestroy() {
+    this.stopSlideAutoplay();
+  },
+  watch: {
+    showSlidesSection(value) {
+      if (value) {
+        this.startSlideAutoplay();
+      } else {
+        this.stopSlideAutoplay();
+      }
+    },
+    slides(list) {
+      if (this.activeSlideIndex >= list.length) {
+        this.activeSlideIndex = 0;
+      }
+      this.startSlideAutoplay();
+    }
   },
   computed: {
     selectedItems() {
       return Object.values(this.cartItems)
-          .filter(item => Number(item.quantity || 0) > 0)
-          .map(item => ({
-            id: item.id,
-            name: item.name,
-            price: Number(item.price || 0),
-            quantity: Number(item.quantity || 0)
-          }));
+        .filter(item => Number(item.quantity || 0) > 0)
+        .map(item => ({
+          id: item.id,
+          name: item.name,
+          price: Number(item.price || 0),
+          quantity: Number(item.quantity || 0)
+        }));
     },
     totalCount() {
       return this.selectedItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
@@ -160,6 +269,39 @@ export default {
       return this.selectedItems.reduce((sum, item) => {
         return sum + Number(item.price || 0) * Number(item.quantity || 0);
       }, 0);
+    },
+    noticeText() {
+      return (this.homeConfig.siteNotice || "")
+        .split(/\r?\n/)
+        .map(item => item.trim())
+        .filter(Boolean)
+        .join("   ·   ");
+    },
+    shouldAnimateNotice() {
+      return this.noticeText.length > 28;
+    },
+    noticeTrackStyle() {
+      if (!this.shouldAnimateNotice) {
+        return {};
+      }
+
+      return {
+        animationDuration: `${Math.max(10, Math.ceil(this.noticeText.length / 2.8))}s`
+      };
+    },
+    showNoticeSection() {
+      return this.homeConfig.showNotice === "1" && Boolean(this.noticeText);
+    },
+    showSlidesSection() {
+      return this.homeConfig.showSlides === "1" && this.slides.length > 0;
+    },
+    showHeroArea() {
+      return this.showSlidesSection || this.showNoticeSection;
+    },
+    sliderTrackStyle() {
+      return {
+        transform: `translateX(-${this.activeSlideIndex * 100}%)`
+      };
     }
   },
   methods: {
@@ -186,15 +328,60 @@ export default {
           userName,
           avatar,
           avatarText: (nickname || userName || "购")
-              .slice(0, 1)
-              .toUpperCase()
+            .slice(0, 1)
+            .toUpperCase()
         };
 
-        // 每次重新获取用户信息后都刷新头像版本，避免浏览器继续显示旧图
         this.avatarVersion = Date.now();
       } catch (error) {
         this.userProfile = {};
       }
+    },
+
+    async loadHomeDecorations() {
+      const [configResult, slidesResult] = await Promise.allSettled([
+        getHomeConfig(),
+        listHomeSlides()
+      ]);
+
+      if (configResult.status === "fulfilled") {
+        const data = configResult.value.data || {};
+        this.homeConfig = {
+          siteNotice: data.site_notice || "",
+          showNotice: String(data.show_notice || "0"),
+          showSlides: String(data.show_slides || "0")
+        };
+      } else {
+        this.homeConfig = {
+          siteNotice: "",
+          showNotice: "0",
+          showSlides: "0"
+        };
+      }
+
+      if (slidesResult.status === "fulfilled") {
+        const list = Array.isArray(slidesResult.value.data) ? slidesResult.value.data : [];
+        this.slides = list
+          .map(item => ({
+            id: item.id,
+            title: item.title || "",
+            img: item.img || "",
+            url: item.url || "",
+            sort: Number(item.sort || 0),
+            status: String(item.status ?? "1"),
+            delFlag: String(item.delFlag ?? "1")
+          }))
+          .filter(item => item.status === "1" && item.delFlag !== "0" && item.img)
+          .sort((a, b) => b.sort - a.sort);
+      } else {
+        this.slides = [];
+      }
+
+      if (this.activeSlideIndex >= this.slides.length) {
+        this.activeSlideIndex = 0;
+      }
+
+      this.startSlideAutoplay();
     },
 
     async getCategoryList() {
@@ -207,7 +394,7 @@ export default {
 
         if (this.categories.length > 0) {
           const matchedCategory = this.categories.find(
-              item => item.id === this.savedActiveCategoryId
+            item => item.id === this.savedActiveCategoryId
           );
           this.activeCategoryId = matchedCategory ? matchedCategory.id : this.categories[0].id;
           this.syncCartState();
@@ -218,14 +405,23 @@ export default {
       }
     },
 
-    async getGoodsList() {
-      if (!this.activeCategoryId) {
+    async getGoodsList(options = {}) {
+      const keyword = (options.keyword !== undefined ? options.keyword : this.searchKeyword || "").trim();
+      const shouldUseCategory = keyword ? !options.ignoreCategory : true;
+
+      if (shouldUseCategory && !this.activeCategoryId) {
         this.goods = [];
         return;
       }
 
       try {
-        const res = await listProductByCategory(this.activeCategoryId);
+        const res = keyword
+          ? await searchHomeProducts({
+              name: keyword,
+              categoryId: shouldUseCategory ? this.activeCategoryId : undefined
+            })
+          : await listProductByCategory(this.activeCategoryId);
+
         this.goods = (res.data || []).map(item => ({
           id: item.id,
           categoryId: item.categoryId,
@@ -240,10 +436,31 @@ export default {
       }
     },
 
+    handleSearchInput() {
+      if (!this.searchKeyword.trim()) {
+        this.getGoodsList({ keyword: "" });
+      }
+    },
+
+    handleSearch() {
+      const keyword = this.searchKeyword.trim();
+
+      if (!keyword) {
+        this.getGoodsList({ keyword: "" });
+        return;
+      }
+
+      this.getGoodsList({
+        keyword,
+        ignoreCategory: true
+      });
+    },
+
     handleCategoryClick(category) {
-      if (this.activeCategoryId === category.id) return;
+      const sameCategory = this.activeCategoryId === category.id;
       this.activeCategoryId = category.id;
       this.syncCartState();
+      if (sameCategory && !this.searchKeyword.trim()) return;
       this.getGoodsList();
     },
 
@@ -278,19 +495,68 @@ export default {
       if (!avatar) return "";
 
       const url =
-          avatar.startsWith("http://") || avatar.startsWith("https://")
-              ? avatar
-              : `/api${avatar}`;
+        avatar.startsWith("http://") || avatar.startsWith("https://")
+          ? avatar
+          : `/api${avatar}`;
 
       return `${url}${url.includes("?") ? "&" : "?"}v=${this.avatarVersion}`;
     },
 
-    getGoodsImageUrl(image) {
-      if (!image) return "";
-      if (image.startsWith("http://") || image.startsWith("https://")) {
-        return image;
+    getResourceUrl(path) {
+      if (!path) return "";
+      if (path.startsWith("http://") || path.startsWith("https://")) {
+        return path;
       }
-      return `/api${image}`;
+      return `/api${path}`;
+    },
+
+    setActiveSlide(index) {
+      this.activeSlideIndex = index;
+      this.startSlideAutoplay();
+    },
+
+    startSlideAutoplay() {
+      this.stopSlideAutoplay();
+
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      if (!this.showSlidesSection || this.slides.length <= 1) {
+        return;
+      }
+
+      this.slideTimer = window.setInterval(() => {
+        this.activeSlideIndex = (this.activeSlideIndex + 1) % this.slides.length;
+      }, this.slideAutoplayDelay);
+    },
+
+    stopSlideAutoplay() {
+      if (this.slideTimer) {
+        window.clearInterval(this.slideTimer);
+        this.slideTimer = null;
+      }
+    },
+
+    handleSlideClick(slide) {
+      if (!slide.url) return;
+
+      if (/^https?:\/\//i.test(slide.url)) {
+        window.location.href = slide.url;
+        return;
+      }
+
+      if (slide.url.startsWith("#/")) {
+        this.$router.push(slide.url.replace(/^#/, "")).catch(() => {});
+        return;
+      }
+
+      if (slide.url.startsWith("/")) {
+        this.$router.push(slide.url).catch(() => {});
+        return;
+      }
+
+      window.location.href = slide.url;
     },
 
     toggleQuantity(item) {
@@ -345,7 +611,6 @@ export default {
   }
 };
 </script>
-
 
 <style scoped>
 :root {
@@ -416,10 +681,17 @@ button {
   pointer-events: none;
 }
 
-.top-bar {
+.top-bar,
+.hero-stack,
+.content-area,
+.shop-summary {
   position: relative;
   z-index: 1;
-  padding: 18px 20px 14px;
+}
+
+.top-bar {
+  order: 1;
+  padding: 0 20px 12px;
 }
 
 .search-bar {
@@ -458,11 +730,19 @@ button {
   transform: rotate(45deg);
 }
 
-.search-placeholder {
+.search-input {
   flex: 1;
-  color: #8f98a8;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #334155;
   font-size: 15px;
   letter-spacing: 0.02em;
+}
+
+.search-input::placeholder {
+  color: #8f98a8;
 }
 
 .search-btn {
@@ -478,9 +758,202 @@ button {
   box-shadow: 0 8px 18px rgba(45, 127, 255, 0.22);
 }
 
-.content-area {
+.hero-stack {
+  order: 0;
+  display: grid;
+  gap: 12px;
+  padding: 18px 16px 14px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hero-slider {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 30px;
+  min-height: 178px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 18px 34px rgba(88, 124, 183, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.slider-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.45s ease;
+}
+
+.slide-card {
+  position: relative;
+  width: 100%;
+  flex: 0 0 100%;
+  min-width: 0;
+  min-height: 178px;
+  padding: 0;
+  border: none;
+  background: linear-gradient(135deg, #3264ff, #7bb7ff 60%, #ffc38c 100%);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.slide-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(110deg, rgba(8, 15, 42, 0.1), rgba(8, 15, 42, 0.64)),
+    linear-gradient(180deg, transparent 25%, rgba(15, 23, 42, 0.28));
+}
+
+.slide-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slide-overlay {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  padding: 22px;
+  color: #fff;
+  text-align: left;
+}
+
+.slide-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.slide-title {
+  max-width: min(100%, 320px);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.28;
+  text-shadow: 0 10px 24px rgba(15, 23, 42, 0.3);
+}
+
+.slide-link {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.slider-dots {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+}
+
+.slider-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.42);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slider-dot.active {
+  width: 22px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.notice-banner {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 14px 24px rgba(148, 163, 184, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(16px);
+}
+
+.notice-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffb347, #ff7a18);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.notice-marquee {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.notice-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 36px;
+  min-width: 100%;
+  width: max-content;
+  white-space: nowrap;
+  color: #526072;
+  font-size: 13px;
+  font-weight: 600;
+  will-change: transform;
+}
+
+.notice-track.animated {
+  animation-name: marquee-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.notice-text {
+  display: inline-block;
+}
+
+.notice-text.clone {
+  padding-right: 6px;
+}
+
+.content-area {
+  order: 2;
   flex: 1;
   min-height: 0;
   display: grid;
@@ -550,6 +1023,12 @@ button {
   border-radius: 999px;
   background: linear-gradient(180deg, #2f8cff, #7ab2ff);
   transform: translateY(-50%);
+}
+
+.goods-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .goods-list {
@@ -635,6 +1114,29 @@ button {
   gap: 10px;
 }
 
+.goods-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 20px 122px;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.66);
+  color: #728096;
+  text-align: center;
+  box-shadow:
+    0 18px 34px rgba(148, 163, 184, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.goods-empty strong {
+  color: #1f2937;
+  font-size: 16px;
+}
+
 .buy-btn,
 .plus-btn,
 .profile-btn,
@@ -697,6 +1199,7 @@ button {
 }
 
 .shop-summary {
+  order: 3;
   position: sticky;
   bottom: 0;
   z-index: 3;
@@ -918,6 +1421,16 @@ button {
   color: #fff;
 }
 
+@keyframes marquee-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(calc(-50% - 18px), 0, 0);
+  }
+}
+
 @media (max-width: 768px) {
   .phone-shell {
     width: 100%;
@@ -926,7 +1439,7 @@ button {
   }
 
   .top-bar {
-    padding: 12px 12px 10px;
+    padding: 0 12px 10px;
   }
 
   .search-bar {
@@ -935,7 +1448,7 @@ button {
     border-radius: 22px;
   }
 
-  .search-placeholder {
+  .search-input {
     font-size: 13px;
   }
 
@@ -943,6 +1456,45 @@ button {
     height: 32px;
     padding: 0 12px;
     font-size: 12px;
+  }
+
+  .hero-stack {
+    gap: 10px;
+    padding: 12px 10px 10px;
+  }
+
+  .hero-slider,
+  .slide-card {
+    min-height: 148px;
+    border-radius: 24px;
+  }
+
+  .slide-overlay {
+    padding: 18px;
+    gap: 8px;
+  }
+
+  .slide-title {
+    max-width: 240px;
+    font-size: 18px;
+  }
+
+  .slide-link,
+  .notice-track {
+    font-size: 12px;
+  }
+
+  .notice-banner {
+    min-height: 48px;
+    padding: 0 12px;
+    border-radius: 18px;
+  }
+
+  .notice-badge {
+    min-width: 46px;
+    height: 26px;
+    padding: 0 10px;
+    font-size: 11px;
   }
 
   .content-area {
@@ -965,8 +1517,9 @@ button {
     margin-top: 8px;
   }
 
-  .goods-list {
-    padding: 0 0 110px;
+  .goods-list,
+  .goods-empty {
+    padding-bottom: 110px;
   }
 
   .goods-card {
@@ -1091,7 +1644,8 @@ button {
     font-size: 11px;
   }
 
-  .goods-list {
+  .goods-list,
+  .goods-empty {
     padding-bottom: 106px;
   }
 
