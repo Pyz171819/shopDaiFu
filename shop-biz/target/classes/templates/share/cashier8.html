@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <title th:text="${pageTitle}">得物代付</title>
+    <meta name="description" th:content="${shareDesc}">
+
+    <meta property="og:title" th:content="${shareTitle}">
+    <meta property="og:description" th:content="${shareDesc}">
+    <meta property="og:image" th:content="${shareImage}">
+    <meta property="og:url" th:content="${shareUrl}">
+    <meta property="og:type" content="website">
+
+    <link rel="canonical" th:href="${shareUrl}">
+
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0;
+            background: #f8f8f8;
+            color: #111;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+        }
+        .cashier-dewu {
+            min-height: 100vh;
+            padding-bottom: 32px;
+            background: #f8f8f8;
+        }
+        .top-icons {
+            padding: 14px 18px;
+            color: #00c2c9;
+            font-size: 13px;
+            font-weight: 800;
+            text-align: right;
+        }
+        .header-bg {
+            width: 100%;
+            height: 115px;
+            background: linear-gradient(135deg, #111, #252525);
+        }
+        .decoration-layer {
+            position: relative;
+            margin-top: -42px;
+            padding: 0 18px 20px;
+        }
+        .quote-overlay {
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: rgba(255,255,255,.92);
+            color: #111;
+            font-size: 13px;
+            line-height: 1.5;
+            box-shadow: 0 8px 20px rgba(0,0,0,.08);
+        }
+        .unified-card {
+            position: relative;
+            z-index: 1;
+            margin: -9px 12px 0;
+            padding-bottom: 25px;
+            border-radius: 4px;
+            background: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,.03);
+        }
+        .price-section {
+            position: relative;
+            padding: 40px 20px 25px;
+            text-align: center;
+        }
+        .price-seal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            padding: 5px 10px;
+            border: 1px solid #00c2c9;
+            border-radius: 999px;
+            color: #00c2c9;
+            font-size: 12px;
+            transform: rotate(-12deg);
+        }
+        .price-label {
+            margin-bottom: 12px;
+            color: #333;
+            font-size: 16px;
+        }
+        .price-amount {
+            color: #000;
+            font-family: Arial, sans-serif;
+            font-size: 48px;
+            font-weight: 700;
+        }
+        .price-amount span {
+            margin-right: 2px;
+            font-size: 28px;
+        }
+        .timer-wrap {
+            margin-top: 8px;
+            color: #999;
+            font-size: 13px;
+        }
+        .timer-box {
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #111;
+            color: #fff;
+        }
+        .card-divider {
+            margin: 10px 0 25px;
+            border-top: 1px dashed #f2f2f2;
+        }
+        .product-section {
+            padding: 0 20px;
+        }
+        .row-titles {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 15px;
+        }
+        .receiver-tag {
+            font-weight: 700;
+        }
+        .product-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 25px;
+        }
+        .multi-item {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #f5f5f5;
+        }
+        .multi-item:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .p-img {
+            width: 78px;
+            height: 78px;
+            margin-right: 12px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #f6f6f6;
+        }
+        .small-img {
+            width: 60px;
+            height: 60px;
+        }
+        .p-box {
+            flex: 1;
+            min-width: 0;
+        }
+        .p-title {
+            overflow: hidden;
+            color: #111;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .one-line {
+            -webkit-line-clamp: 1;
+        }
+        .item-price {
+            margin-top: 6px;
+            color: #000;
+            font-weight: 700;
+        }
+        .multi-summary {
+            margin-bottom: 18px;
+            text-align: right;
+            color: #666;
+            font-size: 13px;
+        }
+        .btn-pay {
+            display: block;
+            width: calc(100% - 40px);
+            height: 44px;
+            margin: 0 auto;
+            border: 1px solid #00c2c9;
+            border-radius: 4px;
+            background: #00c2c9;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-pay.btn-disabled {
+            border-color: #d8d8d8;
+            background: #d8d8d8;
+            color: #fff;
+            pointer-events: none;
+        }
+        .serrated-edge {
+            height: 20px;
+            margin: 0 12px;
+            background: radial-gradient(circle at 10px -2px, transparent 10px, #fff 11px) repeat-x;
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="cashier-dewu">
+<!--    <div class="top-icons">得物 App</div>-->
+    <div class="header-bg"></div>
+    <div class="decoration-layer">
+        <div class="quote-overlay" th:text="${shareDesc ?: '这件好物来自得物 App，我很喜欢它，请你快来帮我付个款，谢谢啦！'}">这件好物来自得物 App，我很喜欢它，请你快来帮我付个款，谢谢啦！</div>
+    </div>
+
+    <div class="unified-card">
+        <div class="price-section">
+            <div class="price-seal" th:text="${isPaid} ? '已支付' : (${remainingSeconds <= 0} ? '已过期' : '待支付')">待支付</div>
+            <div class="price-label">付款金额</div>
+            <div class="price-amount"><span>¥</span><span th:text="${order.money}">0.00</span></div>
+            <div class="timer-wrap">
+                <span th:if="${isPaid}">订单已完成支付</span>
+                <span th:if="${!isPaid and remainingSeconds <= 0}">订单已超时关闭</span>
+                <span th:if="${!isPaid and remainingSeconds > 0}">剩余支付时间 <span class="timer-box" id="m">00</span> : <span class="timer-box" id="s">00</span></span>
+            </div>
+        </div>
+
+        <div class="card-divider"></div>
+
+        <div class="product-section">
+            <div class="row-titles">
+                <span>商品信息</span>
+                <span>收货人：<span class="receiver-tag" th:text="${userNick ?: '好友'}">好友</span></span>
+            </div>
+
+            <th:block th:if="${!#lists.isEmpty(orderItems)}">
+                <th:block th:if="${#lists.size(orderItems) > 1}">
+                    <div th:each="item : ${orderItems}" class="product-item multi-item">
+                        <img
+                            th:src="${item['image'] != null ? (#strings.startsWith(item['image'], 'http') ? item['image'] : '/api' + item['image']) : 'https://img.yzcdn.cn/vant/cat.jpeg'}"
+                            class="p-img small-img"
+                            alt="product"
+                        >
+                        <div class="p-box">
+                            <div class="p-title one-line" th:text="${item['name']}">商品名称</div>
+                            <div class="item-price">¥<span th:text="${item['price']}">0.00</span></div>
+                        </div>
+                    </div>
+                    <div class="multi-summary">共 <span th:text="${#lists.size(orderItems)}">1</span> 件商品</div>
+                </th:block>
+
+                <th:block th:if="${#lists.size(orderItems) == 1}">
+                    <div class="product-item">
+                        <img
+                            th:src="${orderItems[0]['image'] != null ? (#strings.startsWith(orderItems[0]['image'], 'http') ? orderItems[0]['image'] : '/api' + orderItems[0]['image']) : 'https://img.yzcdn.cn/vant/cat.jpeg'}"
+                            class="p-img"
+                            alt="product"
+                        >
+                        <div class="p-box">
+                            <div class="p-title" th:text="${order.orderName}">商品名称</div>
+                        </div>
+                    </div>
+                </th:block>
+            </th:block>
+
+            <th:block th:if="${#lists.isEmpty(orderItems)}">
+                <div class="product-item">
+                    <div class="p-box">
+                        <div class="p-title" th:text="${order.orderName ?: '得物订单'}">得物订单</div>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+
+        <button th:if="${isPaid}" class="btn-pay" type="button" onclick="jumpToDewu()">已支付，点击前往官网</button>
+        <button th:if="${!isPaid and remainingSeconds <= 0}" class="btn-pay btn-disabled" type="button">订单已过期</button>
+        <button th:if="${!isPaid and remainingSeconds > 0}" id="friendPayBtn" class="btn-pay" type="button">微信支付</button>
+    </div>
+
+    <div class="serrated-edge"></div>
+</div>
+
+<script src="https://res2.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+<script th:inline="javascript">
+    const outTradeNo = [[${order.outTradeNo}]];
+    const expireTimestamp = [[${expireTimestamp}]];
+    let paySubmitting = false;
+    let timerId = null;
+
+    function getRemainSeconds() {
+        if (!expireTimestamp) {
+            return 0;
+        }
+        const diff = expireTimestamp - Date.now();
+        if (diff <= 0) {
+            return 0;
+        }
+        return Math.ceil(diff / 1000);
+    }
+
+    function isWechat() {
+        return /micromessenger/i.test(window.navigator.userAgent);
+    }
+
+    function getPayBtn() {
+        return document.getElementById('friendPayBtn');
+    }
+
+    function setPayBtnState(disabled, text) {
+        const btn = getPayBtn();
+        if (!btn) return;
+
+        btn.disabled = disabled;
+
+        if (disabled) {
+            btn.classList.add('btn-disabled');
+        } else {
+            btn.classList.remove('btn-disabled');
+        }
+
+        if (text) {
+            btn.innerText = text;
+        }
+    }
+
+    function jumpToDewu() {
+        window.location.href = 'https://www.dewu.com';
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function queryOrderPaid() {
+        const resp = await fetch('/api/biz/order/query?outTradeNo=' + encodeURIComponent(outTradeNo), {
+            method: 'GET',
+            credentials: 'same-origin'
+        });
+
+        const res = await resp.json();
+
+        if (!res || res.code !== 200 || !res.data) {
+            return false;
+        }
+
+        const order = res.data;
+        return order.status === '1' || order.status === 1;
+    }
+
+    function updateTimer() {
+        const mEl = document.getElementById('m');
+        const sEl = document.getElementById('s');
+        const remain = getRemainSeconds();
+
+        if (remain <= 0) {
+            if (mEl) mEl.innerText = '00';
+            if (sEl) sEl.innerText = '00';
+            setPayBtnState(true, '订单已过期');
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            return;
+        }
+
+        const m = Math.floor(remain / 60);
+        const s = remain % 60;
+
+        if (mEl) {
+            mEl.innerText = m < 10 ? '0' + m : '' + m;
+        }
+        if (sEl) {
+            sEl.innerText = s < 10 ? '0' + s : '' + s;
+        }
+
+        if (!paySubmitting) {
+            setPayBtnState(false, '微信支付');
+        }
+    }
+
+    function invokeJsapiPay(payParams) {
+        async function handlePaySuccess() {
+            try {
+                setPayBtnState(true, '正在确认支付结果...');
+
+                for (let i = 0; i < 6; i++) {
+                    const paid = await queryOrderPaid();
+                    if (paid) {
+                        window.location.reload();
+                        return;
+                    }
+                    await sleep(1500);
+                }
+
+                window.location.reload();
+            } catch (e) {
+                console.error('查单失败', e);
+                window.location.reload();
+            }
+        }
+
+        function onBridgeReady() {
+            WeixinJSBridge.invoke(
+                'getBrandWCPayRequest',
+                {
+                    appId: payParams.appId,
+                    timeStamp: payParams.timeStamp,
+                    nonceStr: payParams.nonceStr,
+                    package: payParams.packageValue || payParams.package,
+                    signType: payParams.signType || 'MD5',
+                    paySign: payParams.paySign
+                },
+                async function (res) {
+                    paySubmitting = false;
+
+                    if (res.err_msg === 'get_brand_wcpay_request:ok') {
+                        await handlePaySuccess();
+                        return;
+                    }
+
+                    if (getRemainSeconds() > 0) {
+                        setPayBtnState(false, '微信支付');
+                    } else {
+                        setPayBtnState(true, '订单已过期');
+                    }
+
+                    if (res.err_msg !== 'get_brand_wcpay_request:cancel') {
+                        alert('支付未完成：' + res.err_msg);
+                    }
+                }
+            );
+        }
+
+        if (typeof WeixinJSBridge === 'undefined') {
+            document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
+        } else {
+            onBridgeReady();
+        }
+    }
+
+    async function submitFriendPay() {
+        if (paySubmitting) {
+            return;
+        }
+        if (getRemainSeconds() <= 0) {
+            setPayBtnState(true, '订单已过期');
+            return;
+        }
+
+        if (!isWechat()) {
+            alert('请在微信内打开页面完成支付');
+            return;
+        }
+
+        paySubmitting = true;
+        setPayBtnState(true, '正在调起支付...');
+
+        try {
+            const resp = await fetch('/api/biz/order/pay', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    tradeNo: outTradeNo
+                })
+            });
+            const res = await resp.json();
+
+            if (!res || res.code !== 200 || !res.data || !res.data.payParams) {
+                paySubmitting = false;
+
+                if (getRemainSeconds() > 0) {
+                    setPayBtnState(false, '微信支付');
+                } else {
+                    setPayBtnState(true, '订单已过期');
+                }
+                alert((res && res.msg) || '发起支付失败');
+                return;
+            }
+
+            invokeJsapiPay(res.data.payParams);
+        } catch (e) {
+            paySubmitting = false;
+            if (getRemainSeconds() > 0) {
+                setPayBtnState(false, '微信支付');
+            } else {
+                setPayBtnState(true, '订单已过期');
+            }
+            alert('支付请求异常');
+            console.error(e);
+        }
+    }
+
+    const payBtn = getPayBtn();
+    if (payBtn) {
+        payBtn.addEventListener('click', submitFriendPay);
+    }
+
+    updateTimer();
+    timerId = setInterval(updateTimer, 1000);
+
+    async function initWechatShare() {
+        if (!isWechat()) {
+            return;
+        }
+
+        try {
+            const signUrl = window.location.href.split('#')[0];
+            const apiUrl = '/api/biz/wechat/jsapi/signature?url=' + encodeURIComponent(signUrl);
+
+            const resp = await fetch(apiUrl, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            const res = await resp.json();
+
+            if (!res || res.code !== 200 || !res.data) {
+                console.error('获取微信签名失败:', res);
+                return;
+            }
+
+            const config = res.data;
+
+            wx.config({
+                debug: false,
+                appId: config.appId,
+                timestamp: config.timestamp,
+                nonceStr: config.nonceStr,
+                signature: config.signature,
+                jsApiList: [
+                    'updateAppMessageShareData',
+                    'onMenuShareAppMessage'
+                ]
+            });
+
+            wx.ready(function () {
+                const shareData = {
+                    title: [[${shareTitle}]],
+                    desc: [[${shareDesc}]],
+                    link: [[${shareUrl}]],
+                    imgUrl: [[${shareImage}]]
+                };
+
+                if (typeof wx.onMenuShareAppMessage === 'function') {
+                    wx.onMenuShareAppMessage(shareData);
+                }
+
+                if (typeof wx.updateAppMessageShareData === 'function') {
+                    wx.updateAppMessageShareData(shareData);
+                }
+            });
+
+            wx.error(function (err) {
+                console.error('微信 JSSDK 配置失败:', err);
+            });
+        } catch (e) {
+            console.error('初始化微信分享失败', e);
+        }
+    }
+
+    initWechatShare();
+</script>
+</body>
+</html>

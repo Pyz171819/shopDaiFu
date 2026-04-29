@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shop.biz.mapper.BizOrderMapper">
+
+    <resultMap id="BizOrderResultMap" type="com.shop.biz.domain.BizOrder">
+        <id property="id" column="id"/>
+        <result property="outTradeNo" column="out_trade_no"/>
+        <result property="productId" column="product_id"/>
+        <result property="money" column="money"/>
+        <result property="status" column="status"/>
+        <result property="openid" column="openid"/>
+        <result property="payType" column="pay_type"/>
+        <result property="type" column="type"/>
+        <result property="orderName" column="order_name"/>
+        <result property="template" column="template"/>
+        <result property="tpl" column="tpl"/>
+        <result property="items" column="items"/>
+        <result property="payTime" column="pay_time"/>
+        <result property="expireTime" column="expire_time"/>
+        <result property="transactionId" column="transaction_id"/>
+        <result property="notifyTime" column="notify_time"/>
+        <result property="orderCreateUserId" column="order_create_user_id"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="delFlag" column="del_flag"/>
+    </resultMap>
+
+    <sql id="selectBizOrdersVo">
+        select id, out_trade_no, product_id, money, status, openid, pay_type, type, order_name, template, tpl, items,
+               pay_time, expire_time, transaction_id, notify_time, order_create_user_id, create_by, create_time, update_by,
+               update_time, del_flag
+        from biz_orders
+    </sql>
+
+    <select id="selectBizOrderList" parameterType="BizOrder" resultMap="BizOrderResultMap">
+        <include refid="selectBizOrdersVo"/>
+        <where>
+            del_flag = '0'
+            <if test="outTradeNo != null  and outTradeNo != ''"> and out_trade_no = #{outTradeNo}</if>
+            <if test="productId != null "> and product_id = #{productId}</if>
+            <if test="money != null "> and money = #{money}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="openid != null  and openid != ''"> and openid = #{openid}</if>
+            <if test="payType != null  and payType != ''"> and pay_type = #{payType}</if>
+            <if test="type != null  and type != ''"> and type = #{type}</if>
+            <if test="orderName != null  and orderName != ''"> and order_name like concat('%', #{orderName}, '%')</if>
+            <if test="template != null  and template != ''"> and template = #{template}</if>
+            <if test="tpl != null  and tpl != ''"> and tpl = #{tpl}</if>
+            <if test="items != null  and items != ''"> and items like concat('%', #{items}, '%')</if>
+            <if test="payTime != null "> and pay_time = #{payTime}</if>
+            <if test="expireTime != null "> and expire_time = #{expireTime}</if>
+            <if test="transactionId != null  and transactionId != ''"> and transaction_id = #{transactionId}</if>
+            <if test="notifyTime != null "> and notify_time = #{notifyTime}</if>
+            <if test="orderCreateUserId != null "> and order_create_user_id = #{orderCreateUserId}</if>
+             <if test="createBy != null  and createBy != ''"> and create_by = #{createBy}</if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <insert id="insertBizOrder" parameterType="com.shop.biz.domain.BizOrder" useGeneratedKeys="true" keyProperty="id">
+        insert into biz_orders
+        (
+            out_trade_no,
+            product_id,
+            money,
+            status,
+            pay_type,
+            type,
+            order_name,
+            template,
+            tpl,
+            items,
+            expire_time,
+            order_create_user_id,
+            create_by,
+            del_flag
+        )
+        values
+            (
+                #{outTradeNo},
+                #{productId},
+                #{money},
+                #{status},
+                #{payType},
+                #{type},
+                #{orderName},
+                #{template},
+                #{tpl},
+                #{items},
+                #{expireTime},
+                #{orderCreateUserId},
+                #{createBy},
+                #{delFlag}
+            )
+    </insert>
+
+    <select id="selectBizOrderById" resultMap="BizOrderResultMap">
+        select *
+        from biz_orders
+        where id = #{id}
+          and del_flag = '0'
+            limit 1
+    </select>
+
+    <select id="selectBizOrderById2" parameterType="long" resultMap="BizOrderResultMap">
+        <include refid="selectBizOrdersVo"/>
+        where id = #{id}
+    </select>
+
+
+    <select id="selectBizOrderByOutTradeNo" resultMap="BizOrderResultMap">
+        select *
+        from biz_orders
+        where out_trade_no = #{outTradeNo}
+          and del_flag = '0'
+            limit 1
+    </select>
+
+    <select id="countByOutTradeNo" resultType="int">
+        select count(1)
+        from biz_orders
+        where out_trade_no = #{outTradeNo}
+    </select>
+
+    <select id="queryByStatus" resultMap="BizOrderResultMap">
+         select *
+         from biz_orders
+         <where>
+                del_flag = '0'
+         <if test="orderCreateUserId != null ">
+             and order_create_user_id = #{orderCreateUserId}
+         </if>
+         <if test="status != null  and status != '' ">
+             and status = #{status}
+         </if>
+         </where>
+         order by create_time desc
+    </select>
+
+    <select id="queryTodayXF" resultType="java.math.BigDecimal">
+        select ifnull(sum(money), 0)
+        from biz_orders
+        where del_flag = '0' and create_by = #{createBy} and status = '1'
+        and create_time >= curdate() and create_time &lt; date_add(curdate(), interval 1 day)
+    </select>
+
+    <delete id="deleteBizOrderByOutTradeNo">
+        update  biz_orders set del_flag = '1'
+        where out_trade_no = #{outTradeNo}
+    </delete>
+
+    <update id="updateBizOrder" parameterType="BizOrder">
+        update biz_orders
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="outTradeNo != null">out_trade_no = #{outTradeNo},</if>
+            <if test="productId != null">product_id = #{productId},</if>
+            <if test="money != null">money = #{money},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="openid != null">openid = #{openid},</if>
+            <if test="payType != null">pay_type = #{payType},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="orderName != null">shorder_name = #{orderName},</if>
+            <if test="template != null">template = #{template},</if>
+            <if test="tpl != null">tpl = #{tpl},</if>
+            <if test="items != null">items = #{items},</if>
+            <if test="payTime != null">pay_time = #{payTime},</if>
+            <if test="expireTime != null">expire_time = #{expireTime},</if>
+            <if test="transactionId != null">transaction_id = #{transactionId},</if>
+            <if test="notifyTime != null">notify_time = #{notifyTime},</if>
+            <if test="orderCreateUserId != null">order_create_user_id = #{orderCreateUserId},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+<!--    ============================================================================================     -->
+    <insert id="insertBizOrder2" parameterType="BizOrder" useGeneratedKeys="true" keyProperty="id">
+        insert into biz_orders
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="outTradeNo != null">out_trade_no,</if>
+            <if test="productId != null">product_id,</if>
+            <if test="money != null">money,</if>
+            <if test="status != null">status,</if>
+            <if test="openid != null">openid,</if>
+            <if test="payType != null">pay_type,</if>
+            <if test="type != null">type,</if>
+            <if test="orderName != null">order_name,</if>
+            <if test="template != null">template,</if>
+            <if test="tpl != null">tpl,</if>
+            <if test="items != null">items,</if>
+            <if test="payTime != null">pay_time,</if>
+            <if test="expireTime != null">expire_time,</if>
+            <if test="transactionId != null">transaction_id,</if>
+            <if test="notifyTime != null">notify_time,</if>
+            <if test="orderCreateUserId != null">order_create_user_id,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="delFlag != null">del_flag,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="outTradeNo != null">#{outTradeNo},</if>
+            <if test="productId != null">#{productId},</if>
+            <if test="money != null">#{money},</if>
+            <if test="status != null">#{status},</if>
+            <if test="openid != null">#{openid},</if>
+            <if test="payType != null">#{payType},</if>
+            <if test="type != null">#{type},</if>
+            <if test="orderName != null">#{orderName},</if>
+            <if test="template != null">#{template},</if>
+            <if test="tpl != null">#{tpl},</if>
+            <if test="items != null">#{items},</if>
+            <if test="payTime != null">#{payTime},</if>
+            <if test="expireTime != null">#{expireTime},</if>
+            <if test="transactionId != null">#{transactionId},</if>
+            <if test="notifyTime != null">#{notifyTime},</if>
+            <if test="orderCreateUserId != null">#{orderCreateUserId},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+        </trim>
+    </insert>
+
+    <update id="updateBizOrder2" parameterType="BizOrder">
+        update biz_orders
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="outTradeNo != null">out_trade_no = #{outTradeNo},</if>
+            <if test="productId != null">product_id = #{productId},</if>
+            <if test="money != null">money = #{money},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="openid != null">openid = #{openid},</if>
+            <if test="payType != null">pay_type = #{payType},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="orderName != null">order_name = #{orderName},</if>
+            <if test="template != null">template = #{template},</if>
+            <if test="tpl != null">tpl = #{tpl},</if>
+            <if test="items != null">items = #{items},</if>
+            <if test="payTime != null">pay_time = #{payTime},</if>
+            <if test="expireTime != null">expire_time = #{expireTime},</if>
+            <if test="transactionId != null">transaction_id = #{transactionId},</if>
+            <if test="notifyTime != null">notify_time = #{notifyTime},</if>
+            <if test="orderCreateUserId != null">order_create_user_id = #{orderCreateUserId},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteBizOrderById" parameterType="String">
+        update  biz_orders set del_flag = '1' where id = #{id}
+    </delete>
+
+    <delete id="deleteBizOrderByIds" parameterType="String">
+        update  biz_orders set del_flag = '1' where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 批量更新过期订单：待支付(0) → 已过期(2) -->
+    <update id="updateExpiredOrderStatus">
+        UPDATE biz_orders
+        SET status = '2'
+        WHERE status = '0'  -- 只改待支付
+        AND expire_time &lt; NOW()  -- 已经过期的
+    </update>
+    <select id="countOrdersBetween" resultType="java.lang.Long">
+        select count(1)
+        from biz_orders
+        where del_flag = '0'
+          and create_time <![CDATA[>=]]> #{startTime}
+          and create_time <![CDATA[<]]> #{endTime}
+        <if test="status != null and status != ''">
+          and status = #{status}
+        </if>
+    </select>
+
+    <select id="countOrdersByStatus" resultType="java.lang.Long">
+        select count(1)
+        from biz_orders
+        where del_flag = '0'
+          and status = #{status}
+    </select>
+
+    <select id="sumPaidAmountBetween" resultType="java.math.BigDecimal">
+        select ifnull(sum(money), 0)
+        from biz_orders
+        where del_flag = '0'
+          and status = '1'
+          and pay_time <![CDATA[>=]]> #{startTime}
+          and pay_time <![CDATA[<]]> #{endTime}
+    </select>
+
+    <select id="selectRevenueTrend" resultType="com.shop.biz.domain.vo.DashboardRevenuePointVo">
+        select date_format(pay_time, '%m-%d') as dayLabel,
+               ifnull(sum(money), 0) as amount
+        from biz_orders
+        where del_flag = '0'
+          and status = '1'
+          and pay_time <![CDATA[>=]]> #{startTime}
+          and pay_time <![CDATA[<]]> #{endTime}
+        group by date_format(pay_time, '%m-%d')
+        order by min(pay_time)
+    </select>
+
+    <select id="selectPaidOrdersForDashboard" resultMap="BizOrderResultMap">
+        select id, items, money, status, pay_time, create_time, del_flag
+        from biz_orders
+        where del_flag = '0'
+          and status = '1'
+          and items is not null
+          and items != ''
+    </select>
+</mapper>

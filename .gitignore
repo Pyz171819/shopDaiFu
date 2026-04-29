@@ -1,0 +1,20 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Node
+node_modules/
+dist/
+
+# Maven / Java
+target/
+*.class
+
+# Logs
+logs/
+*.log
+
+# Env / secrets
+.env
+application-prod.yml
+application-dev.yml
