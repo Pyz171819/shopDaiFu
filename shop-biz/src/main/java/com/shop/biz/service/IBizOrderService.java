@@ -84,6 +84,8 @@ public interface IBizOrderService {
      */
     String handleWxPayNotify(HttpServletRequest request);
 
+    String handleEpayNotify(HttpServletRequest request);
+
     List<BizOrder> queryByStatus(BizOrder  order);
 
     BigDecimal queryTodayXF(BizOrder  order);

@@ -73,47 +73,6 @@
           </el-row>
         </template>
 
-        <template v-if="form.payChannel === 'manual'">
-          <div class="section-title">个人收款码配置</div>
-
-          <el-form-item label="收款码地址">
-            <el-input
-              v-model="form.manualQrcode"
-              placeholder="请输入收款码图片地址或上传后的文件路径"
-            />
-          </el-form-item>
-
-          <el-form-item v-if="form.manualQrcode" label="预览">
-            <img :src="form.manualQrcode" class="qrcode-preview" />
-          </el-form-item>
-        </template>
-
-        <template v-if="form.payChannel === 'ysm'">
-          <div class="section-title">YSM 支付配置</div>
-
-          <el-form-item label="接口地址">
-            <el-input v-model="form.ysmApi" placeholder="请输入 YSM 接口地址" />
-          </el-form-item>
-
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <el-form-item label="商户ID">
-                <el-input v-model="form.ysmId" placeholder="请输入 YSM 商户ID" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="密钥">
-                <el-input v-model="form.ysmKey" placeholder="请输入 YSM 密钥" show-password />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="支付类型">
-                <el-input v-model="form.ysmPayType" placeholder="请输入 YSM 支付类型" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </template>
-
         <el-form-item>
           <el-button
             type="primary"
@@ -140,9 +99,7 @@ export default {
       submitLoading: false,
       channelOptions: [
         { label: '易接口（默认）', value: 'epay' },
-        { label: '微信直连（官）', value: 'wxpay' },
-        { label: '个人收款码（免签）', value: 'manual' },
-        { label: 'YSM支付（SDK）', value: 'ysm' }
+        { label: '微信直连（官）', value: 'wxpay' }
       ],
       form: {
         payChannel: 'wxpay',
@@ -154,14 +111,7 @@ export default {
 
         epayApi: '',
         epayId: '',
-        epayKey: '',
-
-        manualQrcode: '',
-
-        ysmApi: '',
-        ysmId: '',
-        ysmKey: '',
-        ysmPayType: ''
+        epayKey: ''
       }
     }
   },
@@ -186,12 +136,6 @@ export default {
         this.form.epayId = data.epayId || ''
         this.form.epayKey = data.epayKey || ''
 
-        this.form.manualQrcode = data.manualQrcode || ''
-
-        this.form.ysmApi = data.ysmApi || ''
-        this.form.ysmId = data.ysmId || ''
-        this.form.ysmKey = data.ysmKey || ''
-        this.form.ysmPayType = data.ysmPayType || ''
       } finally {
         this.loading = false
       }
@@ -235,33 +179,6 @@ export default {
           return false
         }
       }
-
-      if (this.form.payChannel === 'manual') {
-        if (!this.form.manualQrcode) {
-          this.$modal.msgError('请输入个人收款码地址')
-          return false
-        }
-      }
-
-      if (this.form.payChannel === 'ysm') {
-        if (!this.form.ysmApi) {
-          this.$modal.msgError('请输入 YSM 接口地址')
-          return false
-        }
-        if (!this.form.ysmId) {
-          this.$modal.msgError('请输入 YSM 商户ID')
-          return false
-        }
-        if (!this.form.ysmKey) {
-          this.$modal.msgError('请输入 YSM 密钥')
-          return false
-        }
-        if (!this.form.ysmPayType) {
-          this.$modal.msgError('请输入 YSM 支付类型')
-          return false
-        }
-      }
-
       return true
     },
     async handleSubmit() {

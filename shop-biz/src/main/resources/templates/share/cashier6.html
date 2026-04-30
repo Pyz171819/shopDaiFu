@@ -505,11 +505,6 @@
             return;
         }
 
-        if (!isWechat()) {
-            alert('请在微信内打开页面完成支付');
-            return;
-        }
-
         paySubmitting = true;
         setPayBtnState(true, '正在调起支付...');
 
@@ -526,7 +521,7 @@
             });
             const res = await resp.json();
 
-            if (!res || res.code !== 200 || !res.data || !res.data.payParams) {
+            if (!res || res.code !== 200 || !res.data) {
                 paySubmitting = false;
 
                 if (getRemainSeconds() > 0) {
@@ -538,7 +533,26 @@
                 return;
             }
 
-            invokeJsapiPay(res.data.payParams);
+            const payData = res.data;
+            if (payData.payScene === 'JSAPI' && payData.payParams) {
+                if (!isWechat()) {
+                    paySubmitting = false;
+                    updateTimer();
+                    alert('请在微信内打开页面完成支付');
+                    return;
+                }
+                invokeJsapiPay(payData.payParams);
+                return;
+            }
+            
+            if (payData.payScene === 'H5' && payData.h5Url) {
+                window.location.href = payData.h5Url;
+                return;
+            }
+            
+            paySubmitting = false;
+            updateTimer();
+            alert('发起支付失败');
         } catch (e) {
             paySubmitting = false;
             if (getRemainSeconds() > 0) {

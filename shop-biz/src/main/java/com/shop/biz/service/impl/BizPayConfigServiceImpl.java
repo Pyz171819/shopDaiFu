@@ -75,17 +75,6 @@ public class BizPayConfigServiceImpl implements IBizPayConfigService {
                 saveOrUpdate("epay_key", dto.getEpayKey());
                 break;
 
-            case CHANNEL_MANUAL:
-                saveOrUpdate("pay_manual_qrcode", dto.getManualQrcode());
-                break;
-
-            case CHANNEL_YSM:
-                saveOrUpdate("ysm_api", dto.getYsmApi());
-                saveOrUpdate("ysm_id", dto.getYsmId());
-                saveOrUpdate("ysm_key", dto.getYsmKey());
-                saveOrUpdate("ysm_pay_type", dto.getYsmPayType());
-                break;
-
             default:
                 throw new ServiceException("不支持的支付通道：" + payChannel);
         }
@@ -117,27 +106,6 @@ public class BizPayConfigServiceImpl implements IBizPayConfigService {
                 }
                 if (StringUtils.isBlank(dto.getEpayKey())) {
                     throw new ServiceException("请填写易支付密钥");
-                }
-                break;
-
-            case CHANNEL_MANUAL:
-                if (StringUtils.isBlank(dto.getManualQrcode())) {
-                    throw new ServiceException("请上传个人收款码");
-                }
-                break;
-
-            case CHANNEL_YSM:
-                if (StringUtils.isBlank(dto.getYsmApi())) {
-                    throw new ServiceException("请填写 YSM 接口地址");
-                }
-                if (StringUtils.isBlank(dto.getYsmId())) {
-                    throw new ServiceException("请填写 YSM 商户ID");
-                }
-                if (StringUtils.isBlank(dto.getYsmKey())) {
-                    throw new ServiceException("请填写 YSM 密钥");
-                }
-                if (StringUtils.isBlank(dto.getYsmPayType())) {
-                    throw new ServiceException("请填写 YSM 支付类型");
                 }
                 break;
 

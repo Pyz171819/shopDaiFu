@@ -373,9 +373,6 @@ public class WechatPayGatewayImpl implements WechatPayGateway {
         if (!"1".equals(defaultString(cfg.getDaifuSwitch(), "0"))) {
             throw new ServiceException("当前代付功能未开启");
         }
-        if (!"wxpay".equalsIgnoreCase(defaultString(cfg.getPayChannel(), ""))) {
-            throw new ServiceException("当前支付通道不是微信支付");
-        }
         return cfg;
     }
 

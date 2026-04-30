@@ -1,13 +1,13 @@
-<template>
+﻿<template>
   <div class="payment-page">
     <section class="payment-shell">
       <header class="summary-card">
         <div class="summary-title">
-          <span class="cart-icon">🛒</span>
+          <span class="cart-icon">🧾</span>
           <span>订单总金额</span>
         </div>
         <div class="summary-price">
-          <strong>¥{{ formatPrice(paymentSummary.amount) }}</strong>
+          <strong>{{ formatPrice(paymentSummary.amount) }}</strong>
           <span>（共 {{ paymentSummary.count }} 件商品）</span>
         </div>
       </header>
@@ -56,15 +56,52 @@
         <button 
           class="confirm-btn" 
           type="button" 
-          @click="handleConfirm"
+          @click="openPayDialog"
           :disabled="!selectedTpl || submitting"
         >
-          {{ submitting ? '创建订单中...' : (selectedTpl ? `已选择：${selectedTplTitle}，点击去支付` : '请选择代付风格') }}
+          {{ selectedTpl ? `已选择${selectedTplTitle}模板，去选择支付方式` : '请选择代付风格' }}
         </button>
       </footer>
 
       <button class="floating-home" type="button" @click="$router.push({ name: 'home' })">⌂</button>
     </section>
+    <el-dialog
+      title="选择支付方式"
+      :visible.sync="payDialogVisible"
+      width="420px"
+      append-to-body
+      custom-class="pay-dialog"
+    >
+      <div class="pay-dialog-body">
+        <div v-if="selectedTplTitle" class="pay-dialog-template">
+          <span class="template-label">当前模板</span>
+          <strong>{{ selectedTplTitle }}</strong>
+        </div>
+
+        <el-radio-group v-model="selectedPayChannel" class="pay-channel-group">
+          <label
+            v-for="channel in payChannelOptions"
+            :key="channel.value"
+            class="pay-channel-option"
+            :class="{ active: selectedPayChannel === channel.value }"
+          >
+            <span class="pay-channel-mark" :class="channel.className">{{ channel.mark }}</span>
+            <span class="pay-channel-main">
+              <span class="pay-channel-name">{{ channel.label }}</span>
+              <span class="pay-channel-desc">{{ channel.desc }}</span>
+            </span>
+            <el-radio :label="channel.value" />
+          </label>
+        </el-radio-group>
+      </div>
+
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="payDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitOrder">
+          {{ submitting ? '创建订单中...' : '立即下单' }}
+        </el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -81,7 +118,15 @@ export default {
       submitting: false,
       paymentSummary: getPaymentSummary(),
       selectedTpl: '',
-      paymentOptions: []
+      paymentOptions: [],
+      payDialogVisible: false,
+      selectedPayChannel: 'wxpay',
+      payChannelOptions: [
+        { value: 'wxpay', label: '微信支付', desc: '官方微信支付', mark: '微', className: 'wechat' },
+        { value: 'epay_wxpay', label: '易支付-微信', desc: '易支付微信通道', mark: '微', className: 'epay-wechat' },
+        { value: 'epay_alipay', label: '易支付-支付宝', desc: '易支付支付宝通道', mark: '支', className: 'alipay' },
+        { value: 'epay_qqpay', label: '易支付-QQ', desc: '易支付QQ通道', mark: 'Q', className: 'qqpay' },
+      ]
     }
   },
   computed: {
@@ -135,13 +180,12 @@ export default {
     getTemplateImage(image) {
       if (!image) return ''
 
-      // 如果已经是完整的 URL，直接返回
+      // 如果已经是完整 URL，直接返回
       if (/^https?:\/\//i.test(image)) {
         return image
       }
 
-      // 使用 /api 前缀，让 vue.config.js 的代理处理
-      // 这样在开发环境和生产环境都能正常工作
+      // 使用 /api 前缀，交给代理和生产环境统一处理
       if (image.startsWith('/')) {
         return `/api${image}`
       }
@@ -154,7 +198,16 @@ export default {
       this.$message.success(`已选择模板：${option.title}`)
     },
 
-    async handleConfirm() {
+    openPayDialog() {
+      if (!this.selectedTpl) {
+        this.$message.warning('请选择代付风格')
+        return
+      }
+
+      this.payDialogVisible = true
+    },
+
+    async submitOrder() {
       if (!this.selectedTpl) {
         this.$message.warning('请选择代付风格')
         return
@@ -181,7 +234,8 @@ export default {
           quantity: item.quantity
         })),
         template: current.title || '',
-        tpl: current.tpl || ''
+        tpl: current.tpl || '',
+        orderType: this.selectedPayChannel
       }
 
       this.submitting = true
@@ -200,12 +254,12 @@ export default {
         const outTradeNo = order.outTradeNo
 
         this.$message.success('订单创建成功')
+        this.payDialogVisible = false
 
-        // 清除购物车数据
-        // localStorage.removeItem('shopping-control-home-cart')
+        // 如需在这里清空购物车，可恢复下面两行
         // localStorage.removeItem('shopping-control-payment-summary')
 
-        // 在微信环境中，配置分享
+        // 微信环境下提前配置分享信息
         try {
           const { isWechat } = await import('@/utils/device')
           if (isWechat()) {
@@ -213,10 +267,10 @@ export default {
           }
         } catch (error) {
           console.error('[Payment] 配置微信分享失败:', error)
-          // 不影响跳转
+          // 不影响跳转到收银页
         }
 
-        // 跳转到支付页面
+        // 跳转到收银页
         setTimeout(() => {
           this.$router.push({ 
             name: 'cashier',
@@ -252,7 +306,7 @@ export default {
         // 构建分享链接
         const shareLink = `${window.location.origin}/share/cashier?outTradeNo=${encodeURIComponent(order.outTradeNo)}&from=share`
         
-        // 获取分享图片
+        // 鑾峰彇鍒嗕韩鍥剧墖
         let imgUrl = ''
         if (String(templateConfig.useProductImage) === '1') {
           // 使用商品图
@@ -266,7 +320,7 @@ export default {
             }
           }
         } else {
-          // 使用固定图
+          // 使用固定分享图
           if (templateConfig.shareImage) {
             const shareImage = templateConfig.shareImage
             if (shareImage.startsWith('http://') || shareImage.startsWith('https://')) {
@@ -510,6 +564,177 @@ export default {
   cursor: not-allowed;
 }
 
+.pay-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pay-dialog-template {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e9edf5;
+  border-radius: 8px;
+  background: #f7f9fc;
+  color: #4b5464;
+  font-size: 14px;
+}
+
+.template-label {
+  color: #8b94a6;
+  white-space: nowrap;
+}
+
+.pay-dialog-template strong {
+  min-width: 0;
+  color: #242a35;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pay-channel-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.pay-channel-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 12px 14px;
+  border: 1px solid #e4e9f2;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.pay-channel-option:hover {
+  border-color: #b8c7dc;
+  box-shadow: 0 8px 18px rgba(31, 48, 77, 0.08);
+  transform: translateY(-1px);
+}
+
+.pay-channel-option.active {
+  border-color: #1f8cff;
+  background: #f4f9ff;
+  box-shadow: 0 0 0 3px rgba(31, 140, 255, 0.12);
+}
+
+.pay-channel-mark {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.pay-channel-mark.wechat {
+  background: #08c160;
+}
+
+.pay-channel-mark.epay-wechat {
+  background: #16b66f;
+}
+
+.pay-channel-mark.alipay {
+  background: #1677ff;
+}
+
+.pay-channel-mark.qqpay {
+  background: #12a8ff;
+}
+
+.pay-channel-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pay-channel-name {
+  color: #252b36;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.pay-channel-desc {
+  color: #8a94a6;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/deep/ .pay-dialog {
+  width: min(420px, calc(100vw - 28px)) !important;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/deep/ .pay-dialog .el-dialog__header {
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+/deep/ .pay-dialog .el-dialog__title {
+  color: #1f2633;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/deep/ .pay-dialog .el-dialog__body {
+  padding: 16px 20px 4px;
+}
+
+/deep/ .pay-dialog .el-dialog__footer {
+  padding: 14px 20px 18px;
+}
+
+/deep/ .pay-dialog .el-radio {
+  margin-right: 0;
+}
+
+/deep/ .pay-dialog .el-radio__label {
+  display: none;
+}
+
+/deep/ .pay-dialog .el-radio__inner {
+  width: 18px;
+  height: 18px;
+}
+
+/deep/ .pay-dialog .el-button {
+  min-width: 88px;
+  height: 36px;
+  border-radius: 18px;
+}
+
+/deep/ .pay-dialog .el-button--primary {
+  border-color: #1f8cff;
+  background: #1f8cff;
+}
 .floating-home {
   position: fixed;
   right: 22px;
@@ -688,6 +913,49 @@ export default {
     font-size: 18px;
     z-index: 21;
   }
+
+  /deep/ .pay-dialog .el-dialog__header {
+    padding: 16px 16px 10px;
+  }
+
+  /deep/ .pay-dialog .el-dialog__body {
+    padding: 14px 16px 2px;
+  }
+
+  /deep/ .pay-dialog .el-dialog__footer {
+    padding: 12px 16px 16px;
+  }
+
+  .pay-dialog-template {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .pay-dialog-template strong {
+    width: 100%;
+    text-align: left;
+  }
+
+  .pay-channel-option {
+    min-height: 64px;
+    padding: 11px 12px;
+  }
+
+  .pay-channel-mark {
+    flex-basis: 34px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .dialog-footer {
+    gap: 8px;
+  }
+
+  /deep/ .pay-dialog .el-button {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 380px) {
@@ -745,3 +1013,4 @@ export default {
   }
 }
 </style>
+

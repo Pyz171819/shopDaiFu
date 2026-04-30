@@ -25,13 +25,21 @@ import com.shop.system.service.ISysUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -63,6 +71,9 @@ public class BizOrderServiceImpl implements IBizOrderService {
 
     @Autowired
     private WechatPayGateway wechatPayGateway;
+
+    @Autowired
+    private RestTemplate restTemplate;
 //    @Autowired
 //    private ObjectMapper objectMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -71,6 +82,8 @@ public class BizOrderServiceImpl implements IBizOrderService {
 
     private static final String STATUS_PAID = "1";
     private static final String PAY_TYPE_WXPAY = "wxpay";
+    private static final String PAY_TYPE_EPAY = "epay";
+    private static final String EPAY_PAY_TYPE_WXPAY = "wxpay";
 
 
 
@@ -228,6 +241,13 @@ public class BizOrderServiceImpl implements IBizOrderService {
             throw new ServiceException("订单商品不能为空");
         }
 
+        String orderType = StringUtils.trimToEmpty(dto.getOrderType());
+        if (!"wxpay".equals(orderType) && !"epay_wxpay".equals(orderType)
+                                       && !"epay_alipay".equals(orderType)
+                                       && !"epay_qqpay".equals(orderType)) {
+            throw new ServiceException("Unsupported payment channel");
+        }
+
         List<OrderItemDto> normalizedItems = normalizeItems(dto.getItems());
         if (normalizedItems.isEmpty()) {
             throw new ServiceException("订单商品不能为空");
@@ -235,7 +255,6 @@ public class BizOrderServiceImpl implements IBizOrderService {
 
         List<Map<String, Object>> snapshotItems = new ArrayList<>();
         BigDecimal totalMoney = BigDecimal.ZERO;
-        Long ownerUserId = null;
         Integer singleProductId = null;
         String firstProductName = null;
 
@@ -296,7 +315,7 @@ public class BizOrderServiceImpl implements IBizOrderService {
         order.setMoney(totalMoney);
         order.setStatus(STATUS_UNPAID);
         order.setPayType(null);
-        order.setType(getCurrentPayChannel());
+        order.setType(orderType);
         order.setOrderName(buildOrderName(snapshotItems, firstProductName));
         order.setTemplate(defaultIfBlank(dto.getTemplate(), DEFAULT_TEMPLATE));
         order.setTpl(defaultIfBlank(dto.getTpl(), DEFAULT_TPL));
@@ -337,16 +356,19 @@ public class BizOrderServiceImpl implements IBizOrderService {
     @Override
     public BizOrderPayResp pay(BizOrderPayReq req, HttpServletRequest request) {
         if (req == null || StringUtils.isBlank(req.getTradeNo())) {
-            throw new ServiceException("订单号不能为空");
+            throw new ServiceException("Order number cannot be empty");
         }
 
-        validateWechatBrowser(request);
-
         BizOrder order = getValidPayOrder(req.getTradeNo());
-
-        return buildJsapiPay(order, request);
+        if ("wxpay".equals(order.getType())) {
+            validateWechatBrowser(request);
+            return buildJsapiPay(order, request);
+        }
+        if (StringUtils.startsWith(order.getType(), "epay_")) {
+            return buildEpayPay(order, request);
+        }
+        throw new ServiceException("Unsupported payment channel");
     }
-
     @Override
     public List<BizOrder> queryByStatus(BizOrder  order) {
          return bizOrderMapper.queryByStatus(order);
@@ -442,6 +464,7 @@ public class BizOrderServiceImpl implements IBizOrderService {
         }
         //更新用户资金
         SysUser sysUser = sysUserService.selectUserById(Long.valueOf(order.getCreateBy()));
+        BizMoneyLog log = new BizMoneyLog();
 
         BigDecimal orderMoney = order.getMoney();
         BigDecimal commissionRate = sysUser.getBizUser().getCommissionRate();
@@ -453,22 +476,124 @@ public class BizOrderServiceImpl implements IBizOrderService {
         BigDecimal withdrawMoney = orderMoney.subtract(commission);
 
         BizUsers bizUser = sysUser.getBizUser();
+        log.setBeforeMoney(bizUser.getBalance());
+
         bizUser.setBalance(bizUser.getBalance().add(withdrawMoney));
+
+        log.setAfterMoney(bizUser.getBalance());
 
         sysUserService.updateUserByNotice(sysUser);
         // 增加资金流动记录
-        BizMoneyLog log = new BizMoneyLog();
         log.setUserId(Long.valueOf(order.getCreateBy()));
         log.setType("订单支付成功");
         log.setMoney(order.getMoney());
-        log.setBeforeMoney(sysUser.getBizUser().getBalance());
-        log.setAfterMoney(sysUser.getBizUser().getBalance().add(order.getMoney()));
         log.setRemark("订单支付成功");
         int rs1 = bizMoneyLogService.insertBizMoneyLogByNotify(log);
         if (rs1 <= 0) {
             return wxFail("资金日志更新失败");
         }
         return wxSuccess();
+    }
+
+    @Override
+    @Transactional
+    public String handleEpayNotify(HttpServletRequest request) {
+        Map<String, String> notifyMap = readRequestParams(request);
+        if (notifyMap.isEmpty()) {
+            return epayFail();
+        }
+
+        String epayId = requiredConfig("epay_id");
+        String epayKey = requiredConfig("epay_key");
+        if (!epayId.equals(notifyMap.get("pid"))) {
+            return epayFail();
+        }
+        if (!verifyEpaySign(notifyMap, epayKey)) {
+            return epayFail();
+        }
+        if (!"TRADE_SUCCESS".equals(notifyMap.get("trade_status"))) {
+            return epayFail();
+        }
+
+        String outTradeNo = notifyMap.get("out_trade_no");
+        String tradeNo = notifyMap.get("trade_no");
+        String moneyStr = notifyMap.get("money");
+        String type = notifyMap.get("type");
+        if (StringUtils.isBlank(outTradeNo) || StringUtils.isBlank(moneyStr) || StringUtils.isBlank(type)) {
+            return epayFail();
+        }
+
+        BizOrder order = bizOrderMapper.selectBizOrderByOutTradeNo(outTradeNo);
+        if (order == null || "1".equals(order.getDelFlag())) {
+            return epayFail();
+        }
+
+        if (!StringUtils.startsWith(order.getType(), "epay_")) {
+            return epayFail();
+        }
+
+        String resolveEpayType = resolveEpayType(order.getType());
+        if (!resolveEpayType.equals(type)){
+            return epayFail();
+        }
+        BigDecimal notifyMoney;
+        try {
+            notifyMoney = new BigDecimal(moneyStr).setScale(2, BigDecimal.ROUND_HALF_UP);
+        } catch (Exception e) {
+            return epayFail();
+        }
+        BigDecimal orderMoney = order.getMoney().setScale(2, BigDecimal.ROUND_HALF_UP);
+        if (notifyMoney.compareTo(orderMoney) != 0) {
+            return epayFail();
+        }
+
+        if (STATUS_PAID.equals(order.getStatus())) {
+            return epaySuccess();
+        }
+
+        BizOrder update = new BizOrder();
+        update.setId(order.getId());
+        update.setStatus(STATUS_PAID);
+        update.setPayType(PAY_TYPE_EPAY+"-"+type);
+        update.setPayTime(new Date());
+        update.setUpdateTime(new Date());
+        update.setUpdateBy("epay_notify");
+        update.setTransactionId(tradeNo);
+        update.setNotifyTime(new Date());
+
+        int rows = bizOrderMapper.updateBizOrder(update);
+        if (rows <= 0) {
+            return epayFail();
+        }
+
+        SysUser sysUser = sysUserService.selectUserById(Long.valueOf(order.getCreateBy()));
+        BizMoneyLog log = new BizMoneyLog();
+
+        BigDecimal commission = orderMoney
+                .multiply(sysUser.getBizUser().getCommissionRate())
+                .divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP);
+
+        //扣除佣金后的金额（可以加到账户的金额）
+        BigDecimal withdrawMoney = orderMoney.subtract(commission);
+
+        BizUsers bizUser = sysUser.getBizUser();
+        log.setBeforeMoney(bizUser.getBalance());
+
+        bizUser.setBalance(bizUser.getBalance().add(withdrawMoney));
+        log.setAfterMoney(bizUser.getBalance());
+
+        sysUserService.updateUserByNotice(sysUser);
+
+        log.setUserId(Long.valueOf(order.getCreateBy()));
+        log.setType("订单支付成功");
+        log.setMoney(order.getMoney());
+        log.setRemark("订单支付成功");
+        int rs1 = bizMoneyLogService.insertBizMoneyLogByNotify(log);
+        if (rs1 <= 0) {
+            return epayFail();
+        }
+
+        return epaySuccess();
     }
 
     private int toFen(BigDecimal amount) {
@@ -529,6 +654,40 @@ public class BizOrderServiceImpl implements IBizOrderService {
                 + "]]></return_msg></xml>";
     }
 
+    private String epaySuccess() {
+        return "success";
+    }
+
+    private String epayFail() {
+        return "fail";
+    }
+
+    private Map<String, String> readRequestParams(HttpServletRequest request) {
+        Map<String, String> params = new HashMap<>();
+        if (request == null) {
+            return params;
+        }
+        Enumeration<String> names = request.getParameterNames();
+        while (names.hasMoreElements()) {
+            String name = names.nextElement();
+            params.put(name, request.getParameter(name));
+        }
+        return params;
+    }
+
+    private boolean verifyEpaySign(Map<String, String> data, String key) {
+        if (data == null || data.isEmpty() || StringUtils.isBlank(key)) {
+            return false;
+        }
+        String sign = data.get("sign");
+        if (StringUtils.isBlank(sign)) {
+            return false;
+        }
+        SortedMap<String, String> sortedMap = new TreeMap<>(data);
+        String localSign = createEpaySign(sortedMap, key);
+        return sign.equalsIgnoreCase(localSign);
+    }
+
 
 
 
@@ -584,6 +743,165 @@ public class BizOrderServiceImpl implements IBizOrderService {
     }
 
 
+    private BizOrderPayResp buildEpayPay(BizOrder order, HttpServletRequest request) {
+        String epayApi = requiredConfig("epay_api");
+        String epayId = requiredConfig("epay_id");
+        String epayKey = requiredConfig("epay_key");
+        String baseUrl = trimRightSlash(requiredConfig("h5_base_url"));
+
+        SortedMap<String, String> params = new TreeMap<>();
+        params.put("pid", epayId);
+        String type = resolveEpayType(order.getType());
+        params.put("type", type);
+        params.put("out_trade_no", order.getOutTradeNo());
+        params.put("notify_url", baseUrl + "/api/biz/order/pay/notify/epay");
+        params.put("return_url", baseUrl + "/share/cashier?outTradeNo=" + order.getOutTradeNo());
+        params.put("name", buildEpayOrderName(order));
+        params.put("money", formatEpayMoney(order.getMoney()));
+        params.put("clientip", getClientIp(request));
+        params.put("device", "jump");
+        params.put("sign", createEpaySign(params, epayKey));
+        params.put("sign_type", "MD5");
+
+        Map<String, Object> epayResp = postEpayMapi(buildEpayMapiUrl(epayApi), params);
+        Object code = epayResp.get("code");
+        if (code != null && !"1".equals(String.valueOf(code))) {
+            throw new ServiceException("Epay create order failed: " + defaultIfBlank(objectToString(epayResp.get("msg")), "unknown error"));
+        }
+
+        String payUrl = objectToString(epayResp.get("payurl"));
+        if (StringUtils.isBlank(payUrl)) {
+            throw new ServiceException("Epay response missing payurl");
+        }
+
+        BizOrderPayResp resp = new BizOrderPayResp();
+        resp.setPayScene("H5");
+        resp.setTradeNo(order.getOutTradeNo());
+        resp.setH5Url(payUrl);
+        resp.setAmount(order.getMoney().toPlainString());
+        resp.setExpireTime(format(order.getExpireTime()));
+        return resp;
+    }
+
+    private String resolveEpayType(String orderType) {
+        if ("epay_wxpay".equals(orderType)) return "wxpay";
+        if ("epay_alipay".equals(orderType)) return "alipay";
+        if ("epay_qqpay".equals(orderType)) return "qqpay";
+        throw new ServiceException("Unsupported epay type");
+    }
+
+    private Map<String, Object> postEpayMapi(String url, SortedMap<String, String> params) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            form.add(entry.getKey(), entry.getValue());
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(form, headers);
+
+        ResponseEntity<String> response;
+        try {
+            response = restTemplate.postForEntity(url, entity, String.class);
+        } catch (Exception e) {
+            throw new ServiceException("Request epay mapi failed: " + e.getMessage());
+        }
+
+        String body = response.getBody();
+        if (StringUtils.isBlank(body)) {
+            throw new ServiceException("Epay mapi response is empty");
+        }
+
+        try {
+            return objectMapper.readValue(body, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            throw new ServiceException("Parse epay mapi response failed: " + e.getMessage());
+        }
+    }
+
+    private String createEpaySign(SortedMap<String, String> params, String key) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            String k = entry.getKey();
+            String v = entry.getValue();
+            if ("sign".equals(k) || "sign_type".equals(k) || StringUtils.isBlank(v)) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append("&");
+            }
+            sb.append(k).append("=").append(v);
+        }
+        sb.append(key);
+        return md5Lower(sb.toString());
+    }
+
+    private String md5Lower(String text) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] digest = md.digest(text.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                String hex = Integer.toHexString(b & 0xff);
+                if (hex.length() == 1) {
+                    sb.append('0');
+                }
+                sb.append(hex);
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new ServiceException("Create epay sign failed: " + e.getMessage());
+        }
+    }
+
+    private String buildEpayMapiUrl(String epayApi) {
+        String api = trimRightSlash(epayApi);
+        if (api.endsWith("/mapi.php") || api.endsWith(".php")) {
+            return api;
+        }
+        return api + "/mapi.php";
+    }
+
+    private String buildEpayOrderName(BizOrder order) {
+        return defaultIfBlank(order.getOrderName(), "Order-" + order.getOutTradeNo());
+    }
+
+    private String formatEpayMoney(BigDecimal money) {
+        if (money == null || money.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ServiceException("Invalid order amount");
+        }
+        return money.setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString();
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return "127.0.0.1";
+        }
+        String[] headers = {"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP", "WL-Proxy-Client-IP"};
+        for (String header : headers) {
+            String value = request.getHeader(header);
+            if (StringUtils.isNotBlank(value) && !"unknown".equalsIgnoreCase(value)) {
+                return value.split(",")[0].trim();
+            }
+        }
+        return defaultIfBlank(request.getRemoteAddr(), "127.0.0.1");
+    }
+
+    private String requiredConfig(String key) {
+        String value = bizConfigMapper.selectValueByKey(key);
+        if (StringUtils.isBlank(value)) {
+            throw new ServiceException("Missing config: " + key);
+        }
+        return value.trim();
+    }
+
+    private String trimRightSlash(String value) {
+        return StringUtils.removeEnd(StringUtils.trimToEmpty(value), "/");
+    }
+
+    private String objectToString(Object value) {
+        return value == null ? null : String.valueOf(value).trim();
+    }
     private String getCurrentWechatOpenId(HttpServletRequest request) {
         if (request == null) {
             return null;

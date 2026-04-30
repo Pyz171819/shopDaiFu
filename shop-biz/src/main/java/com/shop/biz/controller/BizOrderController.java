@@ -157,6 +157,12 @@ public class BizOrderController extends BaseController {
         return bizOrderService.handleWxPayNotify(request);
     }
 
+    @RequestMapping(value = "/pay/notify/epay", method = {RequestMethod.GET, RequestMethod.POST}, produces = "text/plain;charset=UTF-8")
+    @ResponseBody
+    public String epayNotify(HttpServletRequest request) {
+        return bizOrderService.handleEpayNotify(request);
+    }
+
 
     //查询今天消费流水
     @GetMapping("/queryTodayXF")

@@ -22,6 +22,16 @@ public class OrderCreateDto implements Serializable {
      */
     private String tpl;
 
+    private String orderType;
+
+    public String getOrderType() {
+        return orderType;
+    }
+
+    public void setOrderType(String orderType) {
+        this.orderType = orderType;
+    }
+
     public List<OrderItemDto> getItems() {
         return items;
     }
