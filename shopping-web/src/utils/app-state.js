@@ -41,6 +41,10 @@ export function setPaymentSummary(summary = {}) {
   localStorage.setItem(PAYMENT_SUMMARY_KEY, JSON.stringify(summary));
 }
 
+export function clearPaymentSummary() {
+  localStorage.removeItem(PAYMENT_SUMMARY_KEY);
+}
+
 export function getPaymentSummary() {
   try {
     const stored = localStorage.getItem(PAYMENT_SUMMARY_KEY);
@@ -76,6 +80,34 @@ export function setHomeCartState(state = {}) {
       items: state.items && typeof state.items === "object" ? state.items : {}
     })
   );
+}
+
+export function consumeHomeCartItems(items = []) {
+  const state = getHomeCartState();
+  const nextItems = { ...state.items };
+
+  (items || []).forEach(item => {
+    const itemId = String(item && item.id);
+    if (!item || item.id === undefined || item.id === null) return;
+
+    const current = nextItems[itemId];
+    if (!current) return;
+
+    const remaining = Number(current.quantity || 0) - Number(item.quantity || 0);
+    if (remaining > 0) {
+      nextItems[itemId] = {
+        ...current,
+        quantity: remaining
+      };
+    } else {
+      delete nextItems[itemId];
+    }
+  });
+
+  setHomeCartState({
+    activeCategoryId: state.activeCategoryId,
+    items: nextItems
+  });
 }
 
 export function setCurrentOrder(order = {}) {

@@ -106,7 +106,11 @@
 </template>
 
 <script>
-import { getPaymentSummary } from '../../utils/app-state'
+import {
+  clearPaymentSummary,
+  consumeHomeCartItems,
+  getPaymentSummary
+} from '../../utils/app-state'
 import { listAllShareCardConfig } from '@/api/shareCardConfig'
 import { createOrder } from '@/api/order'
 
@@ -256,8 +260,15 @@ export default {
         this.$message.success('订单创建成功')
         this.payDialogVisible = false
 
-        // 如需在这里清空购物车，可恢复下面两行
-        // localStorage.removeItem('shopping-control-payment-summary')
+        // 仅消费本次购物车结算提交的数量，立即购买不影响已有购物车。
+        if (summary.source === 'cart') {
+          try {
+            consumeHomeCartItems(summary.items)
+          } catch (storageError) {
+            console.warn('[Payment] 更新购物车状态失败:', storageError)
+          }
+        }
+        clearPaymentSummary()
 
         // 微信环境下提前配置分享信息
         try {
@@ -1013,4 +1024,3 @@ export default {
   }
 }
 </style>
-

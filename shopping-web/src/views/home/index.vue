@@ -104,13 +104,33 @@
 
               <div class="goods-actions">
                 <button class="buy-btn" type="button" @click="buyNow(item)">购买</button>
+                <div v-if="item.quantity > 0" class="quantity-control">
+                  <button
+                    class="quantity-btn"
+                    type="button"
+                    aria-label="减少商品数量"
+                    @click="decreaseQuantity(item)"
+                  >
+                    -
+                  </button>
+                  <span class="quantity-value">{{ item.quantity }}</span>
+                  <button
+                    class="quantity-btn"
+                    type="button"
+                    aria-label="增加商品数量"
+                    @click="increaseQuantity(item)"
+                  >
+                    +
+                  </button>
+                </div>
                 <button
-                  :class="['plus-btn', { selected: item.quantity > 0 }]"
+                  v-else
+                  class="plus-btn"
                   type="button"
-                  @click="toggleQuantity(item)"
+                  aria-label="加入购物车"
+                  @click="increaseQuantity(item)"
                 >
-                  <span v-if="item.quantity > 0" class="quantity-pill">{{ item.quantity }}</span>
-                  <span v-else class="plus-sign">+</span>
+                  <span class="plus-sign">+</span>
                 </button>
               </div>
             </article>
@@ -150,19 +170,119 @@
         </div>
 
         <div class="cart-bar">
-          <div class="cart-total">
+          <button
+            class="cart-total"
+            type="button"
+            :aria-label="`查看购物车，共 ${totalCount} 件商品`"
+            @click="openCartDrawer"
+          >
             <span>合计</span>
             <strong>¥{{ formatPrice(totalAmount) }}</strong>
             <em>({{ totalCount }})</em>
-          </div>
+          </button>
           <div class="cart-actions">
-            <button class="clear-btn" type="button" @click="showClearConfirm = true">清空</button>
+            <button
+              class="clear-btn"
+              type="button"
+              :disabled="!totalCount"
+              @click="showClearConfirm = true"
+            >
+              清空
+            </button>
             <button class="settle-btn" type="button" :disabled="!totalCount" @click="goCheckout">
               去结算
             </button>
           </div>
         </div>
       </footer>
+
+      <div v-if="showCartDrawer" class="cart-drawer-mask" @click.self="closeCartDrawer">
+        <aside
+          class="cart-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cart-drawer-title"
+        >
+          <header class="cart-drawer-header">
+            <div>
+              <h2 id="cart-drawer-title">购物车</h2>
+              <span>{{ totalCount }} 件商品</span>
+            </div>
+            <button
+              class="drawer-close-btn"
+              type="button"
+              aria-label="关闭购物车"
+              @click="closeCartDrawer"
+            >
+              ×
+            </button>
+          </header>
+
+          <div v-if="selectedItems.length" class="cart-drawer-list">
+            <article v-for="item in selectedItems" :key="item.id" class="cart-drawer-item">
+              <div class="drawer-item-cover">
+                <img
+                  v-if="item.image"
+                  :src="getResourceUrl(item.image)"
+                  :alt="item.name"
+                />
+                <span v-else>{{ item.short }}</span>
+              </div>
+              <div class="drawer-item-main">
+                <h3>{{ item.name }}</h3>
+                <div class="drawer-item-meta">
+                  <span>¥{{ formatPrice(item.price) }} / 件</span>
+                  <strong>¥{{ formatPrice(item.price * item.quantity) }}</strong>
+                </div>
+                <div class="drawer-item-actions">
+                  <div class="quantity-control drawer-quantity-control">
+                    <button
+                      class="quantity-btn"
+                      type="button"
+                      aria-label="减少商品数量"
+                      @click="decreaseQuantity(item)"
+                    >
+                      -
+                    </button>
+                    <span class="quantity-value">{{ item.quantity }}</span>
+                    <button
+                      class="quantity-btn"
+                      type="button"
+                      aria-label="增加商品数量"
+                      @click="increaseQuantity(item)"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <button
+                    class="remove-item-btn"
+                    type="button"
+                    aria-label="删除商品"
+                    @click="removeCartItem(item)"
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div v-else class="cart-drawer-empty">
+            <strong>购物车还是空的</strong>
+            <span>先挑几件喜欢的商品吧</span>
+          </div>
+
+          <footer class="cart-drawer-footer">
+            <div class="drawer-total">
+              <span>合计</span>
+              <strong>¥{{ formatPrice(totalAmount) }}</strong>
+            </div>
+            <button class="drawer-settle-btn" type="button" :disabled="!totalCount" @click="goCheckout">
+              去结算
+            </button>
+          </footer>
+        </aside>
+      </div>
 
       <div v-if="showClearConfirm" class="modal-mask" @click.self="showClearConfirm = false">
         <div class="confirm-modal">
@@ -205,6 +325,7 @@ export default {
       avatarVersion: Date.now(),
       activeCategoryId: null,
       showClearConfirm: false,
+      showCartDrawer: false,
       searchKeyword: "",
       categories: [],
       goods: [],
@@ -259,7 +380,9 @@ export default {
           id: item.id,
           name: item.name,
           price: Number(item.price || 0),
-          quantity: Number(item.quantity || 0)
+          quantity: Number(item.quantity || 0),
+          image: item.image || "",
+          short: item.name ? item.name.slice(0, 1) : "购"
         }));
     },
     totalCount() {
@@ -471,23 +594,33 @@ export default {
       });
     },
 
-    updateCartItem(item) {
-      if (item.quantity > 0) {
+    updateCartItem(item, quantity = item.quantity) {
+      const itemId = String(item.id);
+      const nextQuantity = Math.max(0, Math.floor(Number(quantity) || 0));
+      const currentItem = this.cartItems[item.id] || this.cartItems[itemId] || {};
+
+      if (nextQuantity > 0) {
         this.cartItems = {
           ...this.cartItems,
           [item.id]: {
             id: item.id,
-            name: item.name,
-            price: Number(item.price || 0),
-            quantity: Number(item.quantity || 0)
+            name: item.name || currentItem.name || "商品",
+            price: Number(item.price ?? currentItem.price ?? 0),
+            image: item.image || currentItem.image || "",
+            quantity: nextQuantity
           }
         };
       } else {
         const nextCartItems = { ...this.cartItems };
         delete nextCartItems[item.id];
+        delete nextCartItems[itemId];
         this.cartItems = nextCartItems;
       }
 
+      const visibleItem = this.goods.find(goodsItem => String(goodsItem.id) === itemId);
+      if (visibleItem) {
+        visibleItem.quantity = nextQuantity;
+      }
       this.syncCartState();
     },
 
@@ -559,14 +692,24 @@ export default {
       window.location.href = slide.url;
     },
 
-    toggleQuantity(item) {
-      if (item.quantity > 0) {
-        item.quantity -= 1;
-      } else {
-        item.quantity = 1;
-      }
+    openCartDrawer() {
+      this.showCartDrawer = true;
+    },
 
-      this.updateCartItem(item);
+    closeCartDrawer() {
+      this.showCartDrawer = false;
+    },
+
+    increaseQuantity(item) {
+      this.updateCartItem(item, Number(item.quantity || 0) + 1);
+    },
+
+    decreaseQuantity(item) {
+      this.updateCartItem(item, Number(item.quantity || 0) - 1);
+    },
+
+    removeCartItem(item) {
+      this.updateCartItem(item, 0);
     },
 
     clearCart() {
@@ -587,9 +730,11 @@ export default {
             id: item.id,
             name: item.name,
             price: item.price,
-            quantity: 1
+            quantity: 1,
+            image: item.image || ""
           }
-        ]
+        ],
+        source: "buy-now"
       });
       this.$router.push({ name: "payment" });
     },
@@ -600,8 +745,10 @@ export default {
       setPaymentSummary({
         amount: this.totalAmount,
         count: this.totalCount,
-        items: this.selectedItems
+        items: this.selectedItems,
+        source: "cart"
       });
+      this.closeCartDrawer();
       this.$router.push({ name: "payment" });
     },
 
@@ -639,6 +786,7 @@ body {
 
 button {
   font: inherit;
+  touch-action: manipulation;
 }
 
 .home-page {
@@ -1142,9 +1290,28 @@ button {
 .profile-btn,
 .clear-btn,
 .settle-btn,
-.modal-btn {
+.modal-btn,
+.quantity-btn,
+.drawer-close-btn,
+.remove-item-btn,
+.drawer-settle-btn {
   border: none;
   cursor: pointer;
+}
+
+.buy-btn:focus-visible,
+.plus-btn:focus-visible,
+.profile-btn:focus-visible,
+.clear-btn:focus-visible,
+.settle-btn:focus-visible,
+.modal-btn:focus-visible,
+.quantity-btn:focus-visible,
+.drawer-close-btn:focus-visible,
+.remove-item-btn:focus-visible,
+.drawer-settle-btn:focus-visible,
+.cart-total:focus-visible {
+  outline: 3px solid rgba(47, 140, 255, 0.42);
+  outline-offset: 2px;
 }
 
 .buy-btn {
@@ -1176,24 +1343,53 @@ button {
   justify-content: center;
 }
 
-.plus-btn.selected {
-  width: auto;
-  min-width: 50px;
-  padding: 0 12px;
-  background: linear-gradient(135deg, #53a1ff, #2f8cff);
-  box-shadow: 0 12px 18px rgba(47, 140, 255, 0.28);
+.plus-btn:hover,
+.quantity-btn:hover {
+  transform: translateY(-1px);
+}
+
+.quantity-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 3px;
+  border-radius: 22px;
+  background: rgba(231, 241, 255, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(200, 223, 255, 0.88);
+}
+
+.quantity-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #2f7ff1;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.quantity-btn:active {
+  transform: scale(0.94);
+}
+
+.quantity-value {
+  min-width: 22px;
+  color: #1f4f98;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
 }
 
 .plus-sign {
   color: #6d8ebc;
   font-size: 22px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.quantity-pill {
-  color: #fff;
-  font-size: 14px;
   font-weight: 700;
   line-height: 1;
 }
@@ -1316,8 +1512,19 @@ button {
   align-items: baseline;
   gap: 6px;
   min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
   color: rgba(226, 232, 240, 0.72);
   font-size: 13px;
+  font-weight: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.cart-total:hover strong {
+  color: #ffffff;
 }
 
 .cart-total strong {
@@ -1345,6 +1552,11 @@ button {
   background: transparent;
 }
 
+.clear-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .settle-btn {
   height: 42px;
   padding: 0 22px;
@@ -1358,6 +1570,237 @@ button {
 
 .settle-btn:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.cart-drawer-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(15, 23, 42, 0.34);
+  backdrop-filter: blur(8px);
+}
+
+.cart-drawer {
+  display: flex;
+  flex-direction: column;
+  width: min(430px, 100vw);
+  height: 100%;
+  padding: 24px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  border-left: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(248, 251, 255, 0.97);
+  box-shadow: -18px 0 36px rgba(15, 23, 42, 0.16);
+}
+
+.cart-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e7edf6;
+}
+
+.cart-drawer-header h2 {
+  margin: 0;
+  color: #172238;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.cart-drawer-header span {
+  display: block;
+  margin-top: 5px;
+  color: #8490a3;
+  font-size: 13px;
+}
+
+.drawer-close-btn {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #eaf1fb;
+  color: #4b5b72;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cart-drawer-list {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 2px;
+  scrollbar-width: none;
+}
+
+.cart-drawer-list::-webkit-scrollbar {
+  display: none;
+}
+
+.cart-drawer-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #e7edf6;
+}
+
+.drawer-item-cover {
+  width: 68px;
+  height: 68px;
+  flex: 0 0 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #edf4ff, #dce8f8);
+  color: #52709e;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.drawer-item-cover img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.drawer-item-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.drawer-item-main h3 {
+  margin: 2px 0 8px;
+  overflow: hidden;
+  color: #1b2940;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawer-item-meta,
+.drawer-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.drawer-item-meta {
+  color: #8490a3;
+  font-size: 12px;
+}
+
+.drawer-item-meta strong {
+  color: #ff6b2c;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.drawer-item-actions {
+  justify-content: flex-start;
+  margin-top: 10px;
+}
+
+.drawer-quantity-control {
+  min-height: 34px;
+  padding: 2px;
+}
+
+.drawer-quantity-control .quantity-btn {
+  width: 30px;
+  height: 30px;
+}
+
+.drawer-quantity-control .quantity-value {
+  min-width: 20px;
+}
+
+.remove-item-btn {
+  height: 34px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 17px;
+  background: transparent;
+  color: #9aa5b5;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.remove-item-btn:hover {
+  color: #e45b48;
+  background: #fff1ed;
+}
+
+.cart-drawer-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #8490a3;
+  text-align: center;
+}
+
+.cart-drawer-empty strong {
+  color: #334155;
+  font-size: 17px;
+}
+
+.cart-drawer-empty span {
+  font-size: 13px;
+}
+
+.cart-drawer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid #e7edf6;
+}
+
+.drawer-total span {
+  display: block;
+  margin-bottom: 4px;
+  color: #8490a3;
+  font-size: 12px;
+}
+
+.drawer-total strong {
+  color: #ff6b2c;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.drawer-settle-btn {
+  min-width: 132px;
+  height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #ffb347, #ff7a18);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(255, 122, 24, 0.24);
+}
+
+.drawer-settle-btn:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -1551,6 +1994,23 @@ button {
     gap: 6px;
   }
 
+  .quantity-control {
+    gap: 4px;
+    min-height: 34px;
+    padding: 2px;
+  }
+
+  .quantity-btn {
+    width: 29px;
+    height: 29px;
+    font-size: 17px;
+  }
+
+  .quantity-value {
+    min-width: 19px;
+    font-size: 12px;
+  }
+
   .buy-btn {
     min-width: 46px;
     height: 30px;
@@ -1564,17 +2024,8 @@ button {
     height: 30px;
   }
 
-  .plus-btn.selected {
-    min-width: 38px;
-    padding: 0 8px;
-  }
-
   .plus-sign {
     font-size: 18px;
-  }
-
-  .quantity-pill {
-    font-size: 12px;
   }
 
   .shop-summary {
@@ -1628,6 +2079,50 @@ button {
     height: 34px;
     padding: 0 16px;
   }
+
+  .cart-drawer-mask {
+    align-items: flex-end;
+  }
+
+  .cart-drawer {
+    width: 100%;
+    height: min(82vh, 680px);
+    padding: 18px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid rgba(255, 255, 255, 0.72);
+    border-right: none;
+    border-left: none;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .cart-drawer-header {
+    padding-bottom: 14px;
+  }
+
+  .cart-drawer-header h2 {
+    font-size: 20px;
+  }
+
+  .cart-drawer-list {
+    padding-top: 8px;
+  }
+
+  .cart-drawer-item {
+    padding: 12px 0;
+  }
+
+  .drawer-item-cover {
+    width: 60px;
+    height: 60px;
+    flex-basis: 60px;
+  }
+
+  .drawer-item-main h3 {
+    font-size: 14px;
+  }
+
+  .drawer-settle-btn {
+    min-width: 118px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -1680,10 +2175,6 @@ button {
     height: 28px;
   }
 
-  .plus-btn.selected {
-    min-width: 34px;
-  }
-
   .shop-profile {
     gap: 8px;
   }
@@ -1701,6 +2192,33 @@ button {
     padding: 0 14px;
     font-size: 10px;
   }
+
+  .cart-drawer {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .drawer-item-cover {
+    width: 54px;
+    height: 54px;
+    flex-basis: 54px;
+    border-radius: 14px;
+  }
+
+  .drawer-item-meta {
+    font-size: 11px;
+  }
+
+  .drawer-item-meta strong {
+    font-size: 14px;
+  }
+
+  .drawer-settle-btn {
+    min-width: 108px;
+    height: 40px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
 }
 
 @media (min-width: 521px) {
@@ -1712,6 +2230,17 @@ button {
     height: calc(100vh - 20px);
     margin: 10px 0;
     border-radius: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slider-track,
+  .notice-track,
+  .plus-btn,
+  .quantity-btn,
+  .cart-total strong {
+    animation: none !important;
+    transition: none !important;
   }
 }
 </style>
