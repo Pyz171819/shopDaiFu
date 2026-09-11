@@ -59,7 +59,12 @@
           @click="openPayDialog"
           :disabled="!selectedTpl || submitting"
         >
-          {{ selectedTpl ? `已选择${selectedTplTitle}模板，去选择支付方式` : '请选择代付风格' }}
+          <span class="confirm-btn-label-full">
+            {{ selectedTpl ? `已选择${selectedTplTitle}模板，去选择支付方式` : '请选择代付风格' }}
+          </span>
+          <span class="confirm-btn-label-mobile">
+            {{ selectedTpl ? '去支付' : '请选择模板' }}
+          </span>
         </button>
       </footer>
 
@@ -562,12 +567,21 @@ export default {
 
 .confirm-btn {
   min-width: 430px;
-  height: 48px;
+  min-height: 48px;
+  padding: 10px 24px;
   border-radius: 24px;
   background: #545460;
   color: #2ff5ff;
   font-size: 20px;
   font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.confirm-btn-label-mobile {
+  display: none;
 }
 
 .confirm-btn:disabled {
@@ -908,12 +922,21 @@ export default {
   .confirm-btn {
     width: min(100%, 260px);
     min-width: 0;
-    height: 46px;
+    min-height: 46px;
+    padding: 10px 18px;
     border-radius: 23px;
     font-size: 16px;
     color: #46f2ff;
     box-shadow: 0 18px 30px rgba(26, 30, 42, 0.28);
     pointer-events: auto;
+  }
+
+  .confirm-btn-label-full {
+    display: none;
+  }
+
+  .confirm-btn-label-mobile {
+    display: inline;
   }
 
   .floating-home {
@@ -1019,7 +1042,8 @@ export default {
 
   .confirm-btn {
     width: min(100%, 240px);
-    height: 44px;
+    min-height: 44px;
+    padding: 8px 16px;
     font-size: 15px;
   }
 }
