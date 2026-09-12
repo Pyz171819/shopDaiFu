@@ -117,6 +117,7 @@ import {
   getPaymentSummary
 } from '../../utils/app-state'
 import { listAllShareCardConfig } from '@/api/shareCardConfig'
+import { getPayConfig } from '@/api/payConfig'
 import { createOrder } from '@/api/order'
 
 export default {
@@ -130,12 +131,8 @@ export default {
       paymentOptions: [],
       payDialogVisible: false,
       selectedPayChannel: 'wxpay',
-      payChannelOptions: [
-        { value: 'wxpay', label: '微信支付', desc: '官方微信支付', mark: '微', className: 'wechat' },
-        { value: 'epay_wxpay', label: '易支付-微信', desc: '易支付微信通道', mark: '微', className: 'epay-wechat' },
-        { value: 'epay_alipay', label: '易支付-支付宝', desc: '易支付支付宝通道', mark: '支', className: 'alipay' },
-        { value: 'epay_qqpay', label: '易支付-QQ', desc: '易支付QQ通道', mark: 'Q', className: 'qqpay' },
-      ]
+      payChannelLoading: true,
+      payChannelOptions: []
     }
   },
   computed: {
@@ -147,8 +144,41 @@ export default {
   created() {
     this.paymentSummary = getPaymentSummary()
     this.loadShareCardConfigs()
+    this.loadPayChannelConfig()
   },
   methods: {
+    async loadPayChannelConfig() {
+      this.payChannelLoading = true
+      try {
+        const res = await getPayConfig()
+        const payChannel = res && res.data && res.data.payChannel
+        this.payChannelOptions = this.buildPayChannelOptions(payChannel)
+        this.selectedPayChannel = this.payChannelOptions[0].value
+      } catch (error) {
+        console.error('加载支付通道配置失败', error)
+        // 配置读取失败时不暴露易支付选项，避免提交未配置的通道。
+        this.payChannelOptions = this.buildPayChannelOptions('wxpay')
+        this.selectedPayChannel = this.payChannelOptions[0].value
+        this.$message.warning('支付通道配置读取失败，已暂按微信支付处理')
+      } finally {
+        this.payChannelLoading = false
+      }
+    },
+
+    buildPayChannelOptions(payChannel) {
+      if (payChannel === 'epay') {
+        return [
+          { value: 'epay_wxpay', label: '易支付-微信', desc: '易支付微信通道', mark: '微', className: 'epay-wechat' },
+          { value: 'epay_alipay', label: '易支付-支付宝', desc: '易支付支付宝通道', mark: '支', className: 'alipay' },
+          { value: 'epay_qqpay', label: '易支付-QQ', desc: '易支付QQ通道', mark: 'Q', className: 'qqpay' }
+        ]
+      }
+
+      return [
+        { value: 'wxpay', label: '微信支付', desc: '官方微信支付', mark: '微', className: 'wechat' }
+      ]
+    },
+
     async loadShareCardConfigs() {
       this.loading = true
       try {
@@ -210,6 +240,11 @@ export default {
     openPayDialog() {
       if (!this.selectedTpl) {
         this.$message.warning('请选择代付风格')
+        return
+      }
+
+      if (this.payChannelLoading || this.payChannelOptions.length === 0) {
+        this.$message.warning('支付通道配置加载中，请稍后再试')
         return
       }
 

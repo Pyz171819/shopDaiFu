@@ -247,6 +247,7 @@ public class BizOrderServiceImpl implements IBizOrderService {
                                        && !"epay_qqpay".equals(orderType)) {
             throw new ServiceException("Unsupported payment channel");
         }
+        validateOrderTypeEnabled(orderType);
 
         List<OrderItemDto> normalizedItems = normalizeItems(dto.getItems());
         if (normalizedItems.isEmpty()) {
@@ -959,6 +960,16 @@ public class BizOrderServiceImpl implements IBizOrderService {
     private String getCurrentPayChannel() {
         String value = bizConfigMapper.selectValueByKey("pay_channel");
         return StringUtils.isBlank(value) ? DEFAULT_PAY_CHANNEL : value.trim();
+    }
+
+    private void validateOrderTypeEnabled(String orderType) {
+        String payChannel = getCurrentPayChannel();
+        if ("epay".equals(payChannel) && !StringUtils.startsWith(orderType, "epay_")) {
+            throw new ServiceException("当前仅支持易支付通道");
+        }
+        if (!"epay".equals(payChannel) && !DEFAULT_PAY_CHANNEL.equals(orderType)) {
+            throw new ServiceException("当前仅支持微信支付通道");
+        }
     }
 
     private String buildOrderName(List<Map<String, Object>> snapshotItems, String firstProductName) {
