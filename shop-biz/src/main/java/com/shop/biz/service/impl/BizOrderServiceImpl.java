@@ -969,7 +969,7 @@ public class BizOrderServiceImpl implements IBizOrderService {
         if (snapshotItems.size() == 1) {
             Map<String, Object> item = snapshotItems.get(0);
             Object quantity = item.get("quantity");
-            return defaultIfBlank(firstProductName, "商品订单") + " x" + quantity;
+            return defaultIfBlank(firstProductName, "商品订单");
         }
 
         return defaultIfBlank(firstProductName, "商品订单") + "等" + snapshotItems.size() + "件商品";

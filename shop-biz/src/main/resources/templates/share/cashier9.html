@@ -222,7 +222,7 @@
                         <div class="p-desc">【热卖限定包装】官方正品</div>
                         <div class="p-meta-row">
                             <span class="p-price">¥<span th:text="${item['price']}">0.00</span></span>
-                            <span class="p-count"><span th:text="${item['quantity'] != null ? item['quantity'] : 1}">1</span> 张</span>
+                            <span class="p-count"> X <span th:text="${item['quantity'] != null ? item['quantity'] : 1}">1</span> </span>
                         </div>
                     </div>
                 </div>
@@ -235,7 +235,7 @@
                         <div class="p-desc">【热卖限定包装】官方正品</div>
                         <div class="p-meta-row">
                             <span class="p-price">¥<span th:text="${order.money}">0.00</span></span>
-                            <span class="p-count">1 张</span>
+                            <span class="p-count"> X 1 </span>
                         </div>
                     </div>
                 </div>
@@ -248,7 +248,7 @@
                     <div class="p-desc">暂无商品明细</div>
                     <div class="p-meta-row">
                         <span class="p-price">¥<span th:text="${order.money}">0.00</span></span>
-                        <span class="p-count">1 张</span>
+                        <span class="p-count"> X 1 </span>
                     </div>
                 </div>
             </div>

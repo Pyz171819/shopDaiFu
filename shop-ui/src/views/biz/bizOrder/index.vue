@@ -90,6 +90,7 @@
       <el-table-column label="卡片模板" align="center" prop="tpl" width="100px" />
       <el-table-column label="商品详情" align="center" prop="items" :show-overflow-tooltip="true" width="180px" />
       <el-table-column label="支付时间" align="center" prop="payTime" width="180"/>
+      <el-table-column label="订单创建时间" align="center" prop="createTime" width="180"/>
       <el-table-column label="订单过期时间" align="center" prop="expireTime" width="180"/>
       <el-table-column label="第三方支付流水号" align="center" prop="transactionId" :show-overflow-tooltip="true" width="180px"/>
       <el-table-column label="支付回调时间" align="center" prop="notifyTime" width="180"/>

@@ -25,7 +25,7 @@
             <div class="p-desc">【热卖限定包装】官方正品</div>
             <div class="p-meta-row">
               <span class="p-price">￥{{ item.price }}</span>
-              <span class="p-count">{{ item.quantity || 1 }} 张</span>
+              <span class="p-count">X {{ item.quantity || 1 }} </span>
             </div>
           </div>
         </div>
@@ -37,7 +37,7 @@
           <div class="p-desc">【热卖限定包装】官方正品</div>
           <div class="p-meta-row">
             <span class="p-price">￥{{ order.money }}</span>
-            <span class="p-count">1 张</span>
+            <span class="p-count">X 1 </span>
           </div>
         </div>
       </div>
