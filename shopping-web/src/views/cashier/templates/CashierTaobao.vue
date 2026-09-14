@@ -26,12 +26,12 @@
             <div class="p-title one-line">{{ item.name }}</div>
             <div class="p-count-row">
               <span class="orange-price">￥{{ item.price }}</span>
-              <span class="item-count">x{{ item.quantity || 1 }}</span>
+              <span class="item-count">x{{ getItemQuantity(item) }}</span>
             </div>
           </div>
         </div>
         <div class="multi-summary">
-          共 {{ orderItems.length }} 件商品，合计
+          共 {{ totalItemCount }} 件商品，合计
           <span>￥{{ order.money }}</span>
         </div>
       </div>
@@ -46,7 +46,7 @@
             <span class="tag-black">次日达</span>
             {{ productName }}
           </div>
-          <div class="p-count-row">x1</div>
+          <div class="p-count-row">￥{{ singleItemPrice }} x{{ singleItemQuantity }}</div>
         </div>
       </div>
     </div>
@@ -88,9 +88,12 @@
       <div v-if="isMultiItem" class="poster-prod-list">
         <div v-for="(item, index) in orderItems.slice(0, 3)" :key="index" class="poster-prod-row">
           <img :src="getImageUrl(item.image)" alt="product" crossorigin="anonymous">
-          <div>{{ item.name }}</div>
+          <div>
+            <div>{{ item.name }}</div>
+            <div>￥{{ item.price }} x{{ getItemQuantity(item) }}</div>
+          </div>
         </div>
-        <div v-if="orderItems.length > 3" class="poster-more">...等 {{ orderItems.length }} 件商品</div>
+        <div v-if="orderItems.length > 3" class="poster-more">...等 {{ totalItemCount }} 件商品</div>
       </div>
 
       <div v-else class="poster-prod-single">

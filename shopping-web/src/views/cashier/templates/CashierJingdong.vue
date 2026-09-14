@@ -73,19 +73,19 @@
             <div class="prod-name one-line">{{ item.name }}</div>
             <div class="prod-price-row">
               <span class="prod-price">¥{{ item.price }}</span>
-              <span class="prod-qty">x{{ item.quantity || 1 }}</span>
+              <span class="prod-qty">x{{ getItemQuantity(item) }}</span>
             </div>
           </div>
         </div>
-        <div class="multi-summary">共 {{ orderItems.length }} 件商品，合计 ¥{{ order.money }}</div>
+        <div class="multi-summary">共 {{ totalItemCount }} 件商品，合计 ¥{{ order.money }}</div>
       </div>
       <div v-else class="prod-row">
         <img :src="productImage" class="prod-img" alt="product">
         <div class="prod-info">
           <div class="prod-name">{{ productName }}</div>
           <div class="prod-price-row">
-            <span class="prod-price">¥{{ order.money }}</span>
-            <span class="prod-qty">数量：1</span>
+            <span class="prod-price">¥{{ singleItemPrice }}</span>
+            <span class="prod-qty">数量：{{ singleItemQuantity }}</span>
           </div>
         </div>
       </div>
@@ -143,10 +143,10 @@
             <img :src="getImageUrl(item.image)" class="prod-img poster-prod-img" alt="product" crossorigin="anonymous">
             <div class="prod-info">
               <div class="prod-name one-line">{{ item.name }}</div>
-              <div class="prod-price">¥{{ item.price }}</div>
+              <div class="prod-price">¥{{ item.price }} x{{ getItemQuantity(item) }}</div>
             </div>
           </div>
-          <div v-if="orderItems.length > 3" class="poster-more">...等商品</div>
+          <div v-if="orderItems.length > 3" class="poster-more">...等 {{ totalItemCount }} 件商品</div>
         </div>
         <div v-else class="prod-row">
           <img :src="productImage" class="prod-img" alt="product" crossorigin="anonymous">

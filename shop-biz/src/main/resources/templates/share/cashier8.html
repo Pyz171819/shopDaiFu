@@ -243,10 +243,10 @@
                         >
                         <div class="p-box">
                             <div class="p-title one-line" th:text="${item['name']}">商品名称</div>
-                            <div class="item-price">¥<span th:text="${item['price']}">0.00</span></div>
+                            <div class="item-price">¥<span th:text="${item['price']}">0.00</span> x<span th:text="${item['quantity'] != null ? item['quantity'] : 1}">1</span></div>
                         </div>
                     </div>
-                    <div class="multi-summary">共 <span th:text="${#lists.size(orderItems)}">1</span> 件商品</div>
+                    <div class="multi-summary">共 <span th:text="${totalItemCount}">1</span> 件商品</div>
                 </th:block>
 
                 <th:block th:if="${#lists.size(orderItems) == 1}">
@@ -258,6 +258,7 @@
                         >
                         <div class="p-box">
                             <div class="p-title" th:text="${order.orderName}">商品名称</div>
+                            <div class="item-price">¥<span th:text="${orderItems[0]['price'] != null ? orderItems[0]['price'] : order.money}">0.00</span> x<span th:text="${orderItems[0]['quantity'] != null ? orderItems[0]['quantity'] : 1}">1</span></div>
                         </div>
                     </div>
                 </th:block>

@@ -283,7 +283,7 @@
                         </div>
                     </div>
                     <div class="multi-summary">
-                        共 <span th:text="${#lists.size(orderItems)}">1</span> 项，总额 <span>¥<span th:text="${order.money}">0.00</span></span>
+                        共 <span th:text="${totalItemCount}">1</span> 项，总额 <span>¥<span th:text="${order.money}">0.00</span></span>
                     </div>
                 </div>
             </th:block>
@@ -297,7 +297,7 @@
                     >
                     <div class="prod-info">
                         <div class="prod-name" th:text="${order.orderName}">酒店名称</div>
-                        <div class="prod-detail">1晚 x1</div>
+                        <div class="prod-detail">¥<span th:text="${orderItems[0]['price'] != null ? orderItems[0]['price'] : order.money}">0.00</span> x<span th:text="${orderItems[0]['quantity'] != null ? orderItems[0]['quantity'] : 1}">1</span></div>
                         <div class="prod-detail" th:text="${orderItems[0]['shopName'] != null ? orderItems[0]['shopName'] : '携程精选酒店'}">携程精选酒店</div>
                     </div>
                 </div>

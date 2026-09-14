@@ -34,7 +34,7 @@
             <img :src="getImageUrl(item.image)" class="prod-img" alt="product">
             <div class="prod-info-col">
               <div class="prod-name">{{ item.name }}</div>
-              <div class="prod-count">￥{{ item.price }} x {{ item.quantity || 1 }}</div>
+              <div class="prod-count">￥{{ item.price }} x {{ getItemQuantity(item) }}</div>
             </div>
           </div>
         </div>
@@ -42,7 +42,7 @@
           <img :src="productImage" class="prod-img" alt="product">
           <div class="prod-info-col">
             <div class="prod-name">{{ productName }}</div>
-            <div class="prod-count">x1</div>
+            <div class="prod-count">￥{{ singleItemPrice }} x {{ singleItemQuantity }}</div>
           </div>
         </div>
       </div>
@@ -105,16 +105,16 @@
               <img :src="getImageUrl(item.image)" class="prod-img" alt="product" crossorigin="anonymous">
               <div class="prod-info-col">
                 <div class="prod-name">{{ item.name }}</div>
-                <div class="prod-count">￥{{ item.price }} x {{ item.quantity || 1 }}</div>
+                <div class="prod-count">￥{{ item.price }} x {{ getItemQuantity(item) }}</div>
               </div>
             </div>
-            <div v-if="orderItems.length > 3" class="poster-more">... 等 {{ orderItems.length }} 件商品</div>
+            <div v-if="orderItems.length > 3" class="poster-more">... 等 {{ totalItemCount }} 件商品</div>
           </div>
           <div v-else class="prod-row">
             <img :src="productImage" class="prod-img" alt="product" crossorigin="anonymous">
             <div class="prod-info-col">
               <div class="prod-name">{{ productName }}</div>
-              <div class="prod-count">x1</div>
+              <div class="prod-count">￥{{ singleItemPrice }} x {{ singleItemQuantity }}</div>
             </div>
           </div>
         </div>

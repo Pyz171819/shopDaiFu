@@ -20,11 +20,11 @@
           <img :src="getImageUrl(item.image)" class="hotel-img" alt="hotel">
           <div class="hotel-info">
             <div class="hotel-name">{{ item.name }}</div>
-            <div class="hotel-detail">￥{{ item.price }} x {{ item.quantity || 1 }}</div>
+            <div class="hotel-detail">￥{{ item.price }} x {{ getItemQuantity(item) }}</div>
           </div>
         </div>
         <div class="multi-summary">
-          共 {{ orderItems.length }} 件，总额 <span>￥{{ order.money }}</span>
+          共 {{ totalItemCount }} 件，总额 <span>￥{{ order.money }}</span>
         </div>
       </div>
 
@@ -32,7 +32,7 @@
         <img :src="productImage" class="prod-img" alt="hotel">
         <div class="prod-info">
           <div class="prod-name">{{ productName }}</div>
-          <div class="prod-detail">1天 x1</div>
+          <div class="prod-detail">￥{{ singleItemPrice }} x{{ singleItemQuantity }}</div>
           <div class="prod-detail">{{ shopName }}</div>
         </div>
       </div>

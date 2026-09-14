@@ -29,14 +29,17 @@
             <img :src="getImageUrl(item.image)" class="p-img small-img" alt="product">
             <div class="p-box">
               <div class="p-title one-line">{{ item.name }}</div>
-              <div class="item-price">￥{{ item.price }}</div>
+              <div class="item-price">￥{{ item.price }} x{{ getItemQuantity(item) }}</div>
             </div>
           </div>
-          <div class="multi-summary">共 {{ orderItems.length }} 件商品</div>
+          <div class="multi-summary">共 {{ totalItemCount }} 件商品</div>
         </div>
         <div v-else class="product-item">
           <img :src="productImage" class="p-img" alt="product">
-          <div class="p-box"><div class="p-title">{{ productName }}</div></div>
+          <div class="p-box">
+            <div class="p-title">{{ productName }}</div>
+            <div class="item-price">￥{{ singleItemPrice }} x{{ singleItemQuantity }}</div>
+          </div>
         </div>
       </div>
 
@@ -76,13 +79,16 @@
               <img :src="getImageUrl(item.image)" class="p-img poster-img" alt="product" crossorigin="anonymous">
               <div class="p-box">
                 <div class="p-title one-line">{{ item.name }}</div>
-                <div class="item-price">￥{{ item.price }}</div>
+                <div class="item-price">￥{{ item.price }} x{{ getItemQuantity(item) }}</div>
               </div>
             </div>
           </div>
           <div v-else class="product-item">
             <img :src="productImage" class="p-img" alt="product" crossorigin="anonymous">
-            <div class="p-box"><div class="p-title">{{ productName }}</div></div>
+            <div class="p-box">
+              <div class="p-title">{{ productName }}</div>
+              <div class="item-price">￥{{ singleItemPrice }} x{{ singleItemQuantity }}</div>
+            </div>
           </div>
         </div>
         <div ref="posterQrContainer" class="poster-qr"></div>

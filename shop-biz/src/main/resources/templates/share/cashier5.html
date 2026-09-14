@@ -251,7 +251,7 @@
                         >
                         <div class="prod-info">
                             <div class="prod-title" th:text="${order.orderName}">商品名称</div>
-                            <div class="prod-qty">x1</div>
+                            <div class="prod-qty">¥<span th:text="${orderItems[0]['price'] != null ? orderItems[0]['price'] : order.money}">0.00</span> x<span th:text="${orderItems[0]['quantity'] != null ? orderItems[0]['quantity'] : 1}">1</span></div>
                         </div>
                     </div>
                 </th:block>

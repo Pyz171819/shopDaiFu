@@ -468,6 +468,7 @@ import { getMyOrders, getTodayRevenue, deleteOrder } from "../../api/order";
 import { updateUser } from "../../api/user";
 import { applySettlement, getSettlementList } from "../../api/settlement";
 import { clearAuth } from "../../utils/app-state";
+import { getTotalItemCount } from "../cashier/templates/orderItemUtils";
 
 export default {
   name: "ProfilePage",
@@ -696,6 +697,7 @@ export default {
       const firstItem = items[0] || {};
       const name = item.orderName || firstItem.name || '订单';
       const short = name.substring(0, 1);
+      const totalItemCount = getTotalItemCount(items);
       
       // 获取商品图片
       let image = '';
@@ -708,7 +710,7 @@ export default {
         outTradeNo: item.outTradeNo,
         time: item.createTime || item.create_time || '',
         name: name,
-        desc: items.length > 1 ? `共${items.length}件商品` : (firstItem.shopName || ''),
+        desc: totalItemCount > 1 ? `共${totalItemCount}件商品` : (firstItem.shopName || ''),
         amount: Number(item.money || 0),
         short: short,
         status: Number(item.status), // 确保是数字类型

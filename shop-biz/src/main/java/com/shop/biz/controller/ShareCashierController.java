@@ -80,6 +80,7 @@ public class ShareCashierController {
         }
 
         List<Map<String, Object>> orderItems = parseItems(order.getItems());
+        int totalItemCount = getTotalItemCount(orderItems);
 
         boolean isPaid = "1".equals(String.valueOf(order.getStatus()));
         long remainingSeconds = 0L;
@@ -98,6 +99,7 @@ public class ShareCashierController {
 
         model.addAttribute("order", order);
         model.addAttribute("orderItems", orderItems);
+        model.addAttribute("totalItemCount", totalItemCount);
         model.addAttribute("isPaid", isPaid);
         model.addAttribute("remainingSeconds", remainingSeconds);
         model.addAttribute("expireTimestamp", expireTimestamp);
@@ -161,7 +163,16 @@ public class ShareCashierController {
             return new ArrayList<>();
         }
         try {
-            return objectMapper.readValue(items, new TypeReference<List<Map<String, Object>>>() {});
+            List<Map<String, Object>> parsedItems = objectMapper.readValue(items, new TypeReference<List<Map<String, Object>>>() {});
+            if (parsedItems == null) {
+                return new ArrayList<>();
+            }
+            for (Map<String, Object> item : parsedItems) {
+                if (item != null) {
+                    item.put("quantity", getItemQuantity(item));
+                }
+            }
+            return parsedItems;
         } catch (Exception e) {
             return new ArrayList<>();
         }
@@ -186,6 +197,33 @@ public class ShareCashierController {
 
     private String formatMoney(BigDecimal money) {
         return money == null ? "0.00" : money.stripTrailingZeros().toPlainString();
+    }
+
+    private int getTotalItemCount(List<Map<String, Object>> orderItems) {
+        if (orderItems == null || orderItems.isEmpty()) {
+            return 0;
+        }
+
+        int total = 0;
+        for (Map<String, Object> item : orderItems) {
+            total += getItemQuantity(item);
+        }
+        return total;
+    }
+
+    private int getItemQuantity(Map<String, Object> item) {
+        if (item == null || item.get("quantity") == null) {
+            return 1;
+        }
+
+        try {
+            int quantity = item.get("quantity") instanceof Number
+                    ? ((Number) item.get("quantity")).intValue()
+                    : Integer.parseInt(String.valueOf(item.get("quantity")));
+            return quantity > 0 ? quantity : 1;
+        } catch (NumberFormatException e) {
+            return 1;
+        }
     }
 
     private String buildOriginalPrice(BigDecimal money) {

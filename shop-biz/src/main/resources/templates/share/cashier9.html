@@ -234,8 +234,8 @@
                         <div class="p-title" th:text="${order.orderName}">电影票商品</div>
                         <div class="p-desc">【热卖限定包装】官方正品</div>
                         <div class="p-meta-row">
-                            <span class="p-price">¥<span th:text="${order.money}">0.00</span></span>
-                            <span class="p-count"> X 1 </span>
+                            <span class="p-price">¥<span th:text="${orderItems[0]['price'] != null ? orderItems[0]['price'] : order.money}">0.00</span></span>
+                            <span class="p-count"> X <span th:text="${orderItems[0]['quantity'] != null ? orderItems[0]['quantity'] : 1}">1</span> </span>
                         </div>
                     </div>
                 </div>

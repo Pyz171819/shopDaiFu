@@ -93,7 +93,7 @@
                         </div>
                     </div>
                     <div class="total-summary">
-                        共 <span th:text="${#lists.size(orderItems)}">1</span> 件商品，合计
+                        共 <span th:text="${totalItemCount}">1</span> 件商品，合计
                         <span class="total-price">¥<span th:text="${order.money}">0.00</span></span>
                     </div>
                 </th:block>
@@ -105,8 +105,8 @@
                             <div class="prod-title" th:text="${order.orderName}">拼多多商品</div>
                             <div class="prod-spec">默认规格</div>
                             <div class="prod-price-row">
-                                <span class="price-small">¥<span th:text="${order.money}">0.00</span></span>
-                                <span>x1</span>
+                                <span class="price-small">¥<span th:text="${orderItems[0]['price'] != null ? orderItems[0]['price'] : order.money}">0.00</span></span>
+                                <span>x<span th:text="${orderItems[0]['quantity'] != null ? orderItems[0]['quantity'] : 1}">1</span></span>
                             </div>
                         </div>
                     </div>

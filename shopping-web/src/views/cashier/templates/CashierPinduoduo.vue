@@ -30,12 +30,12 @@
               <div class="prod-title">{{ item.name }}</div>
               <div class="prod-price-row">
                 <span class="price-small">¥{{ item.price }}</span>
-                <span>x{{ item.quantity || 1 }}</span>
+                <span>x{{ getItemQuantity(item) }}</span>
               </div>
             </div>
           </div>
           <div class="total-summary">
-            共 {{ orderItems.length }} 件商品，合计
+            共 {{ totalItemCount }} 件商品，合计
             <span class="total-price">¥{{ order.money }}</span>
           </div>
         </div>
@@ -46,8 +46,8 @@
             <div class="prod-title">{{ productName }}</div>
             <div class="prod-spec">默认规格</div>
             <div class="prod-price-row">
-              <span class="price-small">¥{{ order.money }}</span>
-              <span>x1</span>
+              <span class="price-small">¥{{ singleItemPrice }}</span>
+              <span>x{{ singleItemQuantity }}</span>
             </div>
           </div>
         </div>
@@ -115,12 +115,12 @@
                 <div class="prod-title">{{ item.name }}</div>
                 <div class="prod-price-row">
                   <span class="price-small">¥{{ item.price }}</span>
-                  <span>x{{ item.quantity || 1 }}</span>
+                  <span>x{{ getItemQuantity(item) }}</span>
                 </div>
               </div>
             </div>
             <div v-if="orderItems.length > 3" class="poster-more-tip">
-              ... 等 {{ orderItems.length }} 件商品
+              ... 等 {{ totalItemCount }} 件商品
             </div>
           </div>
           <div v-else class="prod-item-row">
@@ -129,8 +129,8 @@
               <div class="prod-title">{{ productName }}</div>
               <div class="prod-spec">默认规格</div>
               <div class="prod-price-row">
-                <span class="price-small">¥{{ order.money }}</span>
-                <span>x1</span>
+                <span class="price-small">¥{{ singleItemPrice }}</span>
+                <span>x{{ singleItemQuantity }}</span>
               </div>
             </div>
           </div>
@@ -143,6 +143,7 @@
 <script>
 import html2canvas from 'html2canvas'
 import QRCode from 'qrcodejs2'
+import { getItemQuantity, getSingleItemPrice, getTotalItemCount } from './orderItemUtils'
 
 export default {
   name: 'CashierPinduoduo',
@@ -179,15 +180,27 @@ export default {
     orderItems() {
       try {
         if (typeof this.order.items === 'string') {
-          return JSON.parse(this.order.items)
+          const items = JSON.parse(this.order.items)
+          return Array.isArray(items) ? items : []
         }
-        return this.order.items || []
+        return Array.isArray(this.order.items) ? this.order.items : []
       } catch (error) {
         return []
       }
     },
     isMultiItem() {
       return this.orderItems.length > 1
+    },
+    totalItemCount() {
+      return getTotalItemCount(this.orderItems)
+    },
+    singleItemQuantity() {
+      return this.orderItems.length === 1 ? getItemQuantity(this.orderItems[0]) : 1
+    },
+    singleItemPrice() {
+      return this.orderItems.length === 1
+        ? getSingleItemPrice(this.orderItems[0], this.order.money)
+        : this.order.money
     },
     productName() {
       return this.order.orderName || '拼多多商品'
@@ -241,6 +254,10 @@ export default {
     this.stopTimer()
   },
   methods: {
+    getItemQuantity(item) {
+      return getItemQuantity(item)
+    },
+
     async fetchUserInfo() {
       try {
         const { getUserSimpleInfo } = await import('@/api/auth')

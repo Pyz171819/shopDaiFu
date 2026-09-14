@@ -26,7 +26,7 @@
             <img :src="getImageUrl(item.image)" class="prod-img" alt="product">
             <div class="prod-info">
               <div class="prod-title">{{ item.name }}</div>
-              <div class="prod-qty price-text">￥{{ item.price }} <span>x{{ item.quantity || 1 }}</span></div>
+              <div class="prod-qty price-text">￥{{ item.price }} <span>x{{ getItemQuantity(item) }}</span></div>
             </div>
           </div>
         </div>
@@ -34,7 +34,7 @@
           <img :src="productImage" class="prod-img" alt="product">
           <div class="prod-info">
             <div class="prod-title">{{ productName }}</div>
-            <div class="prod-qty">x1</div>
+            <div class="prod-qty">￥{{ singleItemPrice }} x{{ singleItemQuantity }}</div>
           </div>
         </div>
       </div>

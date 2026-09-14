@@ -371,7 +371,7 @@
                     </div>
                 </div>
                 <div class="multi-summary">
-                    共 <span th:text="${#lists.size(orderItems)}">1</span> 件商品，合计 ¥<span th:text="${order.money}">0.00</span>
+                    共 <span th:text="${totalItemCount}">1</span> 件商品，合计 ¥<span th:text="${order.money}">0.00</span>
                 </div>
             </th:block>
 
@@ -385,8 +385,8 @@
                     <div class="prod-info">
                         <div class="prod-name" th:text="${order.orderName}">商品名称</div>
                         <div class="prod-price-row">
-                            <span class="prod-price">¥<span th:text="${order.money}">0.00</span></span>
-                            <span class="prod-qty">数量 x1</span>
+                            <span class="prod-price">¥<span th:text="${orderItems[0]['price'] != null ? orderItems[0]['price'] : order.money}">0.00</span></span>
+                            <span class="prod-qty">数量 x<span th:text="${orderItems[0]['quantity'] != null ? orderItems[0]['quantity'] : 1}">1</span></span>
                         </div>
                     </div>
                 </div>

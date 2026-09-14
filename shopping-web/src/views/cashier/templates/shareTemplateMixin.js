@@ -1,5 +1,6 @@
 import html2canvas from 'html2canvas'
 import QRCode from 'qrcodejs2'
+import { getItemQuantity, getSingleItemPrice, getTotalItemCount } from './orderItemUtils'
 
 export default {
   props: {
@@ -43,15 +44,27 @@ export default {
     orderItems() {
       try {
         if (typeof this.order.items === 'string') {
-          return JSON.parse(this.order.items)
+          const items = JSON.parse(this.order.items)
+          return Array.isArray(items) ? items : []
         }
-        return this.order.items || []
+        return Array.isArray(this.order.items) ? this.order.items : []
       } catch (error) {
         return []
       }
     },
     isMultiItem() {
       return this.orderItems.length > 1
+    },
+    totalItemCount() {
+      return getTotalItemCount(this.orderItems)
+    },
+    singleItemQuantity() {
+      return this.orderItems.length === 1 ? getItemQuantity(this.orderItems[0]) : 1
+    },
+    singleItemPrice() {
+      return this.orderItems.length === 1
+        ? getSingleItemPrice(this.orderItems[0], this.order.money)
+        : this.order.money
     },
     productName() {
       return this.order.orderName || '商品订单'
@@ -93,6 +106,10 @@ export default {
     this.stopTimer()
   },
   methods: {
+    getItemQuantity(item) {
+      return getItemQuantity(item)
+    },
+
     async fetchUserInfo() {
       try {
         const { getUserSimpleInfo } = await import('@/api/auth')

@@ -81,14 +81,14 @@
             <div class="p-info">
               <div class="p-name">{{ item.name }}</div>
               <div class="price-line">
-                <span class="count-text">X {{ item.quantity || 1 }}</span>
+                <span class="count-text">X {{ getItemQuantity(item) }}</span>
                 <span class="money-text">￥ {{ item.price }}</span>
               </div>
             </div>
           </div>
         </div>
         <div class="total-summary">
-          共 {{ orderItems.length }} 件商品，合计
+          共 {{ totalItemCount }} 件商品，合计
           <span class="money-strong">￥{{ order.money }}</span>
         </div>
       </div>
@@ -102,8 +102,8 @@
           <div class="p-info">
             <div class="p-name">{{ productName }}</div>
             <div class="price-line">
-              <span class="count-text">X 1</span>
-              <span class="money-text">￥ {{ order.money }}</span>
+              <span class="count-text">X {{ singleItemQuantity }}</span>
+              <span class="money-text">￥ {{ singleItemPrice }}</span>
             </div>
           </div>
         </div>
@@ -133,6 +133,7 @@
 <script>
 import html2canvas from 'html2canvas'
 import QRCode from 'qrcodejs2'
+import { getItemQuantity, getSingleItemPrice, getTotalItemCount } from './orderItemUtils'
 
 export default {
   name: 'CashierMeituan',
@@ -177,15 +178,27 @@ export default {
     orderItems() {
       try {
         if (typeof this.order.items === 'string') {
-          return JSON.parse(this.order.items)
+          const items = JSON.parse(this.order.items)
+          return Array.isArray(items) ? items : []
         }
-        return this.order.items || []
+        return Array.isArray(this.order.items) ? this.order.items : []
       } catch (error) {
         return []
       }
     },
     isMultiItem() {
       return this.orderItems.length > 1
+    },
+    totalItemCount() {
+      return getTotalItemCount(this.orderItems)
+    },
+    singleItemQuantity() {
+      return this.orderItems.length === 1 ? getItemQuantity(this.orderItems[0]) : 1
+    },
+    singleItemPrice() {
+      return this.orderItems.length === 1
+        ? getSingleItemPrice(this.orderItems[0], this.order.money)
+        : this.order.money
     },
     productName() {
       return this.order.orderName || '商品订单'
@@ -248,6 +261,10 @@ export default {
     this.stopTimer()
   },
   methods: {
+    getItemQuantity(item) {
+      return getItemQuantity(item)
+    },
+
     async fetchUserInfo() {
       try {
         const { getUserSimpleInfo } = await import('@/api/auth')

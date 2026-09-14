@@ -983,7 +983,20 @@ public class BizOrderServiceImpl implements IBizOrderService {
             return defaultIfBlank(firstProductName, "商品订单");
         }
 
-        return defaultIfBlank(firstProductName, "商品订单") + "等" + snapshotItems.size() + "件商品";
+        int totalItemCount = 0;
+        for (Map<String, Object> item : snapshotItems) {
+            Object quantity = item.get("quantity");
+            if (quantity instanceof Number) {
+                totalItemCount += Math.max(1, ((Number) quantity).intValue());
+            } else {
+                try {
+                    totalItemCount += Math.max(1, Integer.parseInt(String.valueOf(quantity)));
+                } catch (Exception e) {
+                    totalItemCount++;
+                }
+            }
+        }
+        return defaultIfBlank(firstProductName, "商品订单") + "等" + totalItemCount + "件商品";
     }
 
     private Date buildExpireTime(int minutes) {
